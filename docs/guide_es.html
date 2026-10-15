@@ -1,0 +1,1512 @@
+<title>Sentinel‑2 entre GEE y MPC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F6F2; --panel:#FFFFFF; --ink:#18221D; --muted:#56635B; --rule:#D5DDD6;
+  --green:#1E6B45; --green-soft:#DDEDE3; --gee:#2C6A9A; --gee-soft:#DEEAF3;
+  --mpc:#9A6A17; --mpc-soft:#F3E8D2; --alert:#A13A2E; --alert-soft:#F5E0DC;
+  --serif:"Literata", Georgia, "Times New Roman", serif;
+  --sans:"Instrument Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111814; --panel:#18211C; --ink:#E4EBE6; --muted:#9BA9A0; --rule:#2B3730;
+    --green:#62C08F; --green-soft:#1D3327; --gee:#76AEDA; --gee-soft:#1A2C3A;
+    --mpc:#D7A652; --mpc-soft:#33291A; --alert:#E58A7C; --alert-soft:#3A2220;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111814; --panel:#18211C; --ink:#E4EBE6; --muted:#9BA9A0; --rule:#2B3730;
+  --green:#62C08F; --green-soft:#1D3327; --gee:#76AEDA; --gee-soft:#1A2C3A;
+  --mpc:#D7A652; --mpc-soft:#33291A; --alert:#E58A7C; --alert-soft:#3A2220;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px); -webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:1.075rem;line-height:1.7}
+.wrap{max-width:44rem;margin:0 auto;padding:0 1.25rem}
+.wide{max-width:62rem;margin:0 auto;padding:0 1.25rem}
+h1,h2,h3{font-family:var(--sans);line-height:1.2;letter-spacing:-0.01em;color:var(--ink)}
+h1{font-size:clamp(2rem,5.2vw,3.3rem);font-weight:700;margin:0 0 1rem}
+h2{font-size:clamp(1.45rem,3vw,1.9rem);font-weight:700;margin:3.5rem 0 1rem}
+h3{font-size:1.15rem;font-weight:600;margin:2rem 0 .5rem}
+p{margin:0 0 1.1rem}
+a{color:var(--green)}
+a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offset:3px;border-radius:4px}
+img{max-width:100%;height:auto;display:block}
+.muted{color:var(--muted)}
+small,.small{font-size:.9rem}
+
+/* hero */
+header.hero{padding:3.5rem 0 2.5rem;border-bottom:1px solid var(--rule)}
+.context{font-family:var(--sans);font-size:.95rem;color:var(--muted);margin-bottom:1.5rem}
+.lede{font-size:1.25rem;line-height:1.6;max-width:38rem}
+.status{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.75rem;font-family:var(--sans);font-size:.9rem}
+.pill{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:.3rem .8rem}
+.pill b{font-weight:600}
+.pill.done b{color:var(--green)} .pill.todo b{color:var(--mpc)}
+
+/* short answer */
+.answer{background:var(--panel);border:1px solid var(--rule);border-left:6px solid var(--green);border-radius:6px;padding:1.4rem 1.5rem;margin:2.5rem 0 0}
+.answer h2{margin:0 0 .8rem;font-size:1.3rem}
+.answer ol{margin:0;padding-left:1.3rem}
+.answer li{margin-bottom:.6rem}
+
+/* analogy */
+.analogy{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.5rem 0}
+.analogy div{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:1rem}
+.analogy b{display:block;font-family:var(--sans);font-size:1rem;margin-bottom:.25rem}
+.analogy .i b{color:var(--mpc)} .analogy .r b{color:var(--green)} .analogy .k b{color:var(--gee)}
+.analogy p{font-size:.95rem;line-height:1.55;margin:0}
+@media (max-width:640px){.analogy{grid-template-columns:1fr}}
+
+/* steps (real sequence) */
+ol.steps{list-style:none;padding:0;margin:1.5rem 0;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 1.2rem 3.2rem;border-left:2px solid var(--rule);margin-left:1rem}
+ol.steps li:last-child{border-left-color:transparent}
+ol.steps li::before{content:counter(s);position:absolute;left:-1.05rem;top:-.1rem;width:2rem;height:2rem;border-radius:50%;background:var(--green);color:var(--paper);font-family:var(--sans);font-weight:700;display:grid;place-items:center}
+ol.steps b{font-family:var(--sans)}
+
+/* figures */
+figure{margin:2rem 0}
+figcaption{font-size:.92rem;color:var(--muted);line-height:1.5;margin-top:.6rem}
+.chart{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:1rem;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:34rem;height:auto}
+svg text{font-family:var(--sans);fill:var(--ink)}
+svg .m{fill:var(--muted)}
+.scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.5rem}
+.scroll img{min-width:46rem}
+
+/* callouts */
+.note{border-radius:6px;padding:1rem 1.2rem;margin:1.5rem 0;font-size:1rem}
+.note.warn{background:var(--mpc-soft)} .note.good{background:var(--green-soft)} .note.alert{background:var(--alert-soft)}
+.note b:first-child{font-family:var(--sans)}
+
+/* tables */
+.tbl{overflow-x:auto;margin:1.25rem 0;border:1px solid var(--rule);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-family:var(--sans);font-size:.93rem}
+th,td{padding:.55rem .8rem;text-align:left;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{font-weight:600;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.fail{color:var(--alert);font-weight:600}
+
+/* two columns fixed / variable */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.25rem 0}
+.cols > div{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:1rem 1.2rem}
+.cols h3{margin-top:0}
+.cols ul{margin:0;padding-left:1.1rem;font-size:.97rem}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+
+ul.plain{padding-left:1.2rem} ul.plain li{margin-bottom:.5rem}
+
+/* glossary and annex */
+dl{margin:1rem 0}
+dt{font-family:var(--sans);font-weight:600;margin-top:.9rem}
+dd{margin:.15rem 0 0 0;color:var(--muted)}
+details{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.8rem 1.1rem;margin:1rem 0}
+summary{cursor:pointer;font-family:var(--sans);font-weight:600}
+details[open] summary{margin-bottom:.8rem}
+code{font-size:.85em;background:var(--green-soft);padding:.05rem .3rem;border-radius:3px;word-break:break-word}
+footer{border-top:1px solid var(--rule);margin-top:4rem;padding:2rem 0 3rem;font-size:.9rem;color:var(--muted)}
+.map{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.25rem 0}
+.map > div{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:1rem 1.2rem;font-size:.97rem;line-height:1.6}
+.map h3{margin:0 0 .4rem}
+.map ul{margin:.3rem 0 0;padding-left:1.1rem}
+.map .gee{border-top:4px solid var(--gee)} .map .mpc{border-top:4px solid var(--mpc)} .map .loc{border-top:4px solid var(--green);grid-column:1 / -1}
+@media (max-width:640px){.map{grid-template-columns:1fr}}
+.eq{font-family:var(--sans);background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.9rem 1.1rem;margin:1.2rem 0;overflow-x:auto;font-size:.98rem;line-height:1.8}
+.eq b{font-weight:700}
+
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin:1.25rem 0;font-family:var(--sans);font-size:.88rem}
+.flow span.st{background:var(--panel);border:1px solid var(--rule);border-left:4px solid var(--green);border-radius:5px;padding:.45rem .65rem;line-height:1.35}
+.flow span.ar{color:var(--muted)}
+.flow span.st.last{border-left-color:var(--mpc)}
+table.layers td,table.layers th{white-space:normal;font-size:.9rem}
+table.layers td.same{background:var(--green-soft)}
+table.layers td.diff{background:var(--alert-soft);font-weight:600}
+table.layers th.col{color:var(--ink)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0 1.5rem}
+.cmp div{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.9rem 1rem;font-size:.95rem;line-height:1.55}
+.cmp b{font-family:var(--sans);display:block;margin-bottom:.2rem}
+@media (max-width:640px){.cmp{grid-template-columns:1fr}}
+.illus{font-family:var(--sans);font-size:.8rem;color:var(--muted);text-transform:none;margin:0 0 .3rem}
+
+h1,h2,h3{text-wrap:balance}
+.tbl th,.tbl td{white-space:normal}
+.tbl td code{word-break:break-word}
+.tbl td.num{white-space:nowrap}
+.lede{max-width:40rem}
+pre.code{margin:0;padding:1rem 1.1rem;font:0.8rem/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--paper);border:1px solid var(--rule);border-radius:6px;overflow:auto;max-height:28rem;white-space:pre}
+.cmd{margin:.6rem 0 1.2rem;padding:.8rem 1rem;font:0.82rem/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow-x:auto;white-space:pre}
+.codebar{display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap;margin:.2rem 0 .6rem;font-family:var(--sans);font-size:.88rem}
+.copy{font:600 .85rem var(--sans);color:var(--green);background:var(--green-soft);border:1px solid var(--green);border-radius:5px;padding:.3rem .8rem;cursor:pointer}
+.copy:hover{filter:brightness(.97)}
+.lessons{counter-reset:l;list-style:none;padding:0;margin:1.2rem 0;display:grid;gap:.8rem}
+.lessons li{counter-increment:l;background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.9rem 1.1rem .9rem 3.2rem;position:relative;font-size:1rem;line-height:1.6}
+.lessons li::before{content:counter(l);position:absolute;left:1rem;top:.85rem;font:700 1.05rem var(--sans);color:var(--green)}
+.lessons b{font-family:var(--sans)}
+.refs p{padding-left:2em;text-indent:-2em;font-size:.95rem;line-height:1.55;margin:0 0 .8rem}
+.refs a{word-break:break-all}
+.byline{font-family:var(--sans);font-size:.95rem;color:var(--muted);line-height:1.5;margin:1.5rem 0 0}
+.byline b{color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.8rem;margin:1.2rem 0}
+.kpis div{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:.8rem 1rem}
+.kpis b{display:block;font:700 1.55rem/1.1 var(--sans);font-variant-numeric:tabular-nums}
+.wfbox{background:#ffffff;border:1px solid var(--rule);border-radius:6px;padding:.6rem;overflow-x:auto}
+.wfbox svg{display:block;width:100%;min-width:52rem;height:auto}
+figure{position:relative}
+figure .chart svg,figure .wfbox svg{cursor:zoom-in}
+.zoombtn{position:absolute;top:.5rem;right:.5rem;z-index:2;font:600 .8rem var(--sans);color:var(--green);background:var(--panel);border:1px solid var(--green);border-radius:5px;padding:.25rem .6rem;cursor:pointer;opacity:.92}
+.zoombtn:hover,.zoombtn:focus-visible{opacity:1;background:var(--green-soft)}
+.lb{position:fixed;inset:0;z-index:1000;display:none;flex-direction:column;background:rgba(10,14,12,.96)}
+.lb.open{display:flex}
+.lb-bar{display:flex;gap:.5rem;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding:.6rem .8rem;font-family:var(--sans)}
+.lb-bar .lb-title{margin-right:auto;color:#fff;font-size:.9rem;font-weight:600;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-bar button{font:600 .9rem var(--sans);min-width:2.4rem;padding:.35rem .7rem;border-radius:5px;border:1px solid #cfd8d1;background:#fff;color:#1b2420;cursor:pointer}
+.lb-scroll{flex:1;overflow:auto;padding:0 1rem 1rem;display:flex}
+.lb-canvas{margin:auto;background:var(--panel);border-radius:6px;padding:.8rem}
+.lb-canvas.white{background:#fff}
+.lb-canvas svg{display:block;height:auto;min-width:0!important}
+@media (max-width:640px){.lb-bar .lb-title{display:none}}
+.kpis span{font-family:var(--sans);font-size:.82rem;color:var(--muted);line-height:1.35;display:block;margin-top:.3rem}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="context">Curso de Percepción Remota Avanzada · Caso piloto: predio ganadero en el Cesar, Colombia · Septiembre de 2026</p>
+    <h1>¿Obtenemos la misma señal Sentinel‑2 desde GEE y desde MPC?</h1>
+    <p class="lede">Google Earth Engine (GEE) y Microsoft Planetary Computer (MPC) distribuyen el mismo producto Sentinel‑2 L2A. Este documento resume qué pasa cuando se combinan en una misma serie de NDVI, EVI y NDWI, qué hay que controlar y cómo verificarlo con código reutilizable.</p>
+    <p class="byline"><b>Heiber Alexander Pantevez Villamil</b> · hapantevezv@unal.edu.co · ORCID 0000-0003-1797-0057<br>Doctorado en Agroecología · Facultad de Ciencias Agrarias<br>Universidad Nacional de Colombia, Sede Bogotá<br>Preprint, datos y código en Zenodo: <a href="https://doi.org/10.5281/zenodo.23241823">https://doi.org/10.5281/zenodo.23241823</a></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section class="answer" aria-labelledby="corta">
+  <h2 id="corta">Resultado en breve</h2>
+  <ol>
+    <li><strong>Con las mismas escenas, el resultado es el mismo.</strong> Cuando GEE y MPC sirven el mismo producto, la capa de nubes (SCL) y la reflectancia coinciden píxel a píxel. La misma cadena de cálculo, ejecutada en el servidor de GEE o en un equipo local, da índices por escena y medianas mensuales que coinciden dentro de 10⁻⁶.</li>
+    <li><strong>Lo que cambia es qué escenas tiene cada catálogo.</strong> En 11 meses (junio de 2024 a abril de 2025), GEE tenía 10 de 146 registros escena–tesela que MPC no tenía (6,8 %), y no hubo ninguno en sentido contrario.</li>
+    <li><strong>La misma adquisición puede venir en versiones distintas.</strong> En 22 de 136 registros comunes, los dos catálogos tenían generaciones L2A distintas. Fue un solo episodio, en junio y julio de 2024: de los 10 pares con píxeles válidos en el predio, uno tenía otra máscara de nubes.</li>
+    <li><strong>El efecto es medible.</strong> En los dos meses evaluados, las escenas que solo estaban en GEE desplazaron el NDVI medio del predio en −0,0005 (diciembre de 2024) y −0,0087 (enero de 2025). En un área pública de demostración de 1 km² con el mismo inventario de escenas, el desplazamiento llegó a −0,028 (enero de 2025).</li>
+  </ol>
+</section>
+
+<div class="kpis" aria-label="Cifras del caso piloto">
+  <div><b>6,8 %</b><span>registros presentes en un solo catálogo</span></div>
+  <div><b>1 de 10</b><span>pares con otra generación L2A que cambiaron la máscara</span></div>
+  <div><b>−0,0087</b><span>desplazamiento del NDVI mensual, enero de 2025</span></div>
+  <div><b>0</b><span>diferencias con las mismas escenas y la misma cadena</span></div>
+</div>
+
+<h2>Por qué importa</h2>
+<p>Una serie temporal de varios años sobre un predio necesita cientos de escenas. En GEE hay límites de cuota, de tareas de exportación y de memoria por solicitud; MPC no los tiene, pero exige resolver localmente la lectura, la corrección radiométrica y el cálculo. En la práctica conviene repartir el trabajo entre ambas plataformas.</p>
+<p>El problema aparece al unir los tramos. Si un año se calcula con GEE y el siguiente con MPC, un cambio de NDVI en la frontera puede ser un cambio real de la cobertura (pasturas, arbolado, suelo) o un efecto de haber cambiado de fuente. Sin separar esas dos causas, la serie no se puede interpretar con confianza para seguimiento ganadero ni para ningún otro uso.</p>
+
+<h2>Cómo se comparó</h2>
+<p>La comparación separa tres capas que suelen confundirse. Una diferencia entre plataformas puede venir de cualquiera de ellas, y cada una se verifica de forma distinta.</p>
+<div class="tbl"><table class="layers">
+  <thead><tr><th>Capa</th><th>Qué es</th><th>Cómo se verificó</th></tr></thead>
+  <tbody>
+    <tr><td><b>Producto</b></td><td>La escena L2A, identificada por <code>product_id</code>, datatake y baseline de procesamiento</td><td>Metadatos de identidad y comparación píxel a píxel de SCL y reflectancia</td></tr>
+    <tr><td><b>Cadena analítica</b></td><td>Máscara, suavizado 3 × 3, índices y mediana mensual</td><td>Mismas escenas procesadas en el servidor de GEE y en un motor local común</td></tr>
+    <tr><td><b>Universo de escenas</b></td><td>Qué adquisiciones entran a cada compuesto</td><td>Conciliación de los dos catálogos por adquisición y tesela</td></tr>
+  </tbody>
+</table></div>
+<p><b>Caso de estudio.</b> Un predio ganadero de unas 73 ha en el Cesar (7.348 píxeles de 10 m), cubierto por las teselas MGRS T18PXS y T18PYS. La conciliación de catálogos abarcó junio de 2024 a abril de 2025. La comparación píxel a píxel usó 11 pares de escenas de junio y diciembre de 2024 y enero de 2025.</p>
+<p><b>Tres tipos de nombres.</b> En el texto conviven nombres que responden a preguntas distintas. <b>Sentinel‑2A, 2B y 2C</b> son los satélites de la constelación de ESA que tomaron cada imagen; son nombres oficiales y aparecen en el identificador de cada producto (<code>S2A_MSIL2A_…</code>). <b>GEE y MPC</b> son los catálogos donde se consultan las imágenes. <b>E1, E2 y "solo en GEE"</b> son etiquetas de este estudio que describen la relación entre los dos catálogos para una misma adquisición.</p>
+<p><b>Cadena analítica común.</b></p>
+<div class="flow" aria-label="Cadena analítica">
+  <span class="st">L2A: B02, B03, B04, B08, SCL</span><span class="ar">→</span>
+  <span class="st">Reflectancia = máx(DN + offset, 0) / 10 000</span><span class="ar">→</span>
+  <span class="st">SCL válida {2, 4, 5, 6, 7}, remuestreo de 20 m a 10 m por vecino más cercano</span><span class="ar">→</span>
+  <span class="st">Máscara conjunta SCL + bandas</span><span class="ar">→</span>
+  <span class="st">Media 3 × 3 sobre vecinos válidos</span><span class="ar">→</span>
+  <span class="st">NDVI, EVI, NDWI</span><span class="ar">→</span>
+  <span class="st last">Mediana mensual por píxel</span>
+</div>
+<p class="small muted">Grilla fija EPSG:9377 (origen nacional de Colombia) a 10 m; pertenencia al predio por centro de píxel.</p>
+
+<h3>Flujo de trabajo completo</h3>
+<p>La figura muestra el proceso con sus ramas y dependencias reales. El panel A resume el diseño del estudio: cinco niveles de comparación, cada uno con lo que se mantiene fijo, lo que se varía, la prueba y el resultado. El panel B muestra el flujo de datos de la caja de herramientas en cuatro carriles (GEE, motor local, MPC y verificación), con las entradas y salidas de cada fase, los puntos de decisión y la retroalimentación desde la verificación hacia la conciliación de catálogos.</p>
+<figure class="wf">
+<div class="wfbox"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 1174" width="100%" font-family="DejaVu Sans, Arial, sans-serif" role="img" aria-label="Diseño del estudio y flujo del kit"><rect width="1660" height="1174" fill="#ffffff"/><defs><marker id="m56635b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#56635b"/></marker><marker id="m2c6a9a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2c6a9a"/></marker><marker id="m9a6a17" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a6a17"/></marker><marker id="m2f7a4f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f7a4f"/></marker><marker id="m6a4c93" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6a4c93"/></marker><marker id="mb23a3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b23a3a"/></marker><marker id="m1b2420" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1b2420"/></marker></defs><text x="20" y="30" font-size="20" fill="#1b2420" text-anchor="start" font-weight="700">A</text><text x="46" y="29" font-size="14.5" fill="#1b2420" text-anchor="start" font-weight="700">Diseño del estudio: cuatro niveles de comparación; cada uno fija lo que estableció el anterior (piloto, predio ganadero de 73 ha, Cesar, Colombia)</text><rect x="20" y="98" width="175" height="78" rx="6" fill="#eef3f8" stroke="#2c6a9a" stroke-width="1.6"/><text x="107" y="122" font-size="12.8" fill="#2c6a9a" text-anchor="middle" font-weight="700">Google Earth Engine</text><text x="107" y="142" font-size="11" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">COPERNICUS/</text><text x="107" y="158" font-size="11" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">S2_SR_HARMONIZED</text><path d="M195 137 L222 137" fill="none" stroke="#2c6a9a" stroke-width="1.8" marker-end="url(#m2c6a9a)"/><rect x="20" y="218" width="175" height="78" rx="6" fill="#f8f0e2" stroke="#9a6a17" stroke-width="1.6"/><text x="107" y="242" font-size="12.8" fill="#9a6a17" text-anchor="middle" font-weight="700">Planetary Computer</text><text x="107" y="262" font-size="11" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">sentinel-2-l2a</text><text x="107" y="278" font-size="11" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">STAC + COG</text><path d="M195 257 L222 257" fill="none" stroke="#9a6a17" stroke-width="1.8" marker-end="url(#m9a6a17)"/><text x="107" y="320" font-size="10.5" fill="#56635b" text-anchor="middle" font-weight="normal" font-style="italic">ambas plataformas</text><text x="107" y="334" font-size="10.5" fill="#56635b" text-anchor="middle" font-weight="normal" font-style="italic">entran en cada nivel</text><rect x="225" y="80" width="337" height="296" rx="6" fill="#ffffff" stroke="#6a4c93" stroke-width="1.4"/><rect x="225.7" y="80.7" width="335.6" height="26" rx="5.5" fill="#6a4c93" fill-opacity="0.15"/><text x="235" y="98.5" font-size="13" fill="#1b2420" text-anchor="start" font-weight="700">N1  Inventario de catálogos</text><text x="235" y="126" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE MANTIENE</text><text x="235" y="142" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">AOI, periodo jun 2024–abr 2025</text><text x="235" y="157" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">huella ∩ AOI</text><text x="235" y="183" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE VARÍA</text><text x="235" y="199" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">catálogo: GEE vs MPC</text><text x="235" y="225" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">PRUEBA</text><text x="235" y="241" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">clave = datatake + tesela MGRS</text><text x="235" y="256" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">identidad = product_id</text><rect x="230" y="269" width="327" height="102" rx="4" fill="#f1ecf7"/><text x="235" y="282" font-size="9.8" fill="#6a4c93" text-anchor="start" font-weight="700">RESULTADO</text><text x="235" y="298" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">146 escenas GEE vs 136 MPC</text><text x="235" y="313" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">10 solo GEE (incl. S2C) · 22 E2</text><text x="235" y="328" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">→ Figura 2</text><path d="M564 228.0 L584 228.0" fill="none" stroke="#6a4c93" stroke-width="1.6" marker-end="url(#m6a4c93)"/><rect x="586" y="80" width="337" height="296" rx="6" fill="#ffffff" stroke="#6a4c93" stroke-width="1.4"/><rect x="586.7" y="80.7" width="335.6" height="26" rx="5.5" fill="#6a4c93" fill-opacity="0.15"/><text x="596" y="98.5" font-size="13" fill="#1b2420" text-anchor="start" font-weight="700">N2  Identidad del producto</text><text x="596" y="126" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE MANTIENE</text><text x="596" y="142" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">adquisición, grilla, regla SCL</text><text x="596" y="168" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE VARÍA</text><text x="596" y="184" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">copia del mismo producto (E1)</text><text x="596" y="199" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">generación L2A (E2)</text><text x="596" y="225" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">PRUEBA</text><text x="596" y="241" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">identidad de DN y SCL por píxel</text><text x="596" y="256" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">E2: Jaccard de validez SCL</text><rect x="591" y="269" width="327" height="102" rx="4" fill="#f1ecf7"/><text x="596" y="282" font-size="9.8" fill="#6a4c93" text-anchor="start" font-weight="700">RESULTADO</text><text x="596" y="298" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">E1: idénticos tras el offset</text><text x="596" y="313" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">E2: 1 de 10 pares con píxeles</text><text x="596" y="328" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">válidos difirió (J = 0,899)</text><path d="M925 228.0 L945 228.0" fill="none" stroke="#6a4c93" stroke-width="1.6" marker-end="url(#m6a4c93)"/><rect x="947" y="80" width="337" height="296" rx="6" fill="#ffffff" stroke="#6a4c93" stroke-width="1.4"/><rect x="947.7" y="80.7" width="335.6" height="26" rx="5.5" fill="#6a4c93" fill-opacity="0.15"/><text x="957" y="98.5" font-size="13" fill="#1b2420" text-anchor="start" font-weight="700">N3  Procesamiento</text><text x="957" y="126" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE MANTIENE</text><text x="957" y="142" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">lista de escenas idéntica</text><text x="957" y="168" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE VARÍA</text><text x="957" y="184" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">motor: GEE en servidor</text><text x="957" y="199" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">vs Python local</text><text x="957" y="225" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">PRUEBA</text><text x="957" y="241" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">3×3, índices, mediana mensual</text><text x="957" y="256" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">por píxel, |Δ| ≤ 10⁻⁶</text><rect x="952" y="269" width="327" height="102" rx="4" fill="#f1ecf7"/><text x="957" y="282" font-size="9.8" fill="#6a4c93" text-anchor="start" font-weight="700">RESULTADO</text><text x="957" y="298" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">equivalentes dentro de tolerancia</text><text x="957" y="313" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">(el cálculo no es la causa)</text><path d="M1286 228.0 L1306 228.0" fill="none" stroke="#6a4c93" stroke-width="1.6" marker-end="url(#m6a4c93)"/><rect x="1308" y="80" width="337" height="296" rx="6" fill="#ffffff" stroke="#6a4c93" stroke-width="1.4"/><rect x="1308.7" y="80.7" width="335.6" height="26" rx="5.5" fill="#6a4c93" fill-opacity="0.15"/><text x="1318" y="98.5" font-size="13" fill="#1b2420" text-anchor="start" font-weight="700">N4  Universo de escenas</text><text x="1318" y="126" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE MANTIENE</text><text x="1318" y="142" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">un motor local, todos los parámetros</text><text x="1318" y="168" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">SE VARÍA</text><text x="1318" y="184" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">universo: COMUN · GEE · MPC</text><text x="1318" y="210" font-size="9.8" fill="#56635b" text-anchor="start" font-weight="700">PRUEBA</text><text x="1318" y="226" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">sesgo y MAE, GEE − COMUN</text><text x="1318" y="241" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">OBS_COUNT, SHA-256 de escenas</text><rect x="1313" y="254" width="327" height="117" rx="4" fill="#f1ecf7"/><text x="1318" y="267" font-size="9.8" fill="#6a4c93" text-anchor="start" font-weight="700">RESULTADO</text><text x="1318" y="283" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">NDVI ene 2025: −0,0087</text><text x="1318" y="298" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">OBS_COUNT 5 y 8 vs 4 y 6</text><text x="1318" y="313" font-size="11.6" fill="#1b2420" text-anchor="start" font-weight="normal">→ Tabla 3 · Figura 3</text><path d="M1476.5 80 L1476.5 62 L393.5 62 L393.5 78" fill="none" stroke="#b23a3a" stroke-width="1.7" stroke-dasharray="6 4" marker-end="url(#mb23a3a)"/><rect x="515.0" y="52" width="840" height="19" fill="#ffffff"/><text x="935.0" y="66" font-size="11.3" fill="#b23a3a" text-anchor="middle" font-weight="normal" font-style="italic">Residuo en N4 que N3 no explica → OBS_COUNT y listas de escenas → vuelta a N1: la conciliación conserva cada escena con su estado</text><text x="20" y="426" font-size="20" fill="#1b2420" text-anchor="start" font-weight="700">B</text><text x="46" y="425" font-size="14.5" fill="#1b2420" text-anchor="start" font-weight="700">Flujo de datos del kit: tres scripts, un motor local; entradas y salidas de cada fase</text><rect x="15" y="444" width="1637" height="130" fill="#2c6a9a" fill-opacity="0.045" stroke="#2c6a9a" stroke-opacity="0.35"/><rect x="15" y="444" width="118" height="130" fill="#2c6a9a" fill-opacity="0.13"/><text x="74.0" y="507.0" font-size="13.5" fill="#2c6a9a" text-anchor="middle" font-weight="700">GEE</text><text x="74.0" y="524.0" font-size="10.5" fill="#1b2420" text-anchor="middle" font-weight="normal">Earth Engine</text><rect x="15" y="574" width="1637" height="250" fill="#2f7a4f" fill-opacity="0.045" stroke="#2f7a4f" stroke-opacity="0.35"/><rect x="15" y="574" width="118" height="250" fill="#2f7a4f" fill-opacity="0.13"/><text x="74.0" y="697.0" font-size="13.5" fill="#2f7a4f" text-anchor="middle" font-weight="700">Motor local</text><text x="74.0" y="714.0" font-size="10.5" fill="#1b2420" text-anchor="middle" font-weight="normal">un solo código</text><rect x="15" y="824" width="1637" height="138" fill="#9a6a17" fill-opacity="0.045" stroke="#9a6a17" stroke-opacity="0.35"/><rect x="15" y="824" width="118" height="138" fill="#9a6a17" fill-opacity="0.13"/><text x="74.0" y="891.0" font-size="13.5" fill="#9a6a17" text-anchor="middle" font-weight="700">MPC</text><text x="74.0" y="908.0" font-size="10.5" fill="#1b2420" text-anchor="middle" font-weight="normal">Planetary Comp.</text><rect x="15" y="962" width="1637" height="200" fill="#6a4c93" fill-opacity="0.045" stroke="#6a4c93" stroke-opacity="0.35"/><rect x="15" y="962" width="118" height="200" fill="#6a4c93" fill-opacity="0.13"/><text x="74.0" y="1060.0" font-size="13.5" fill="#6a4c93" text-anchor="middle" font-weight="700">Verificación</text><text x="74.0" y="1077.0" font-size="10.5" fill="#1b2420" text-anchor="middle" font-weight="normal">y salidas</text><rect x="145" y="594" width="150" height="150" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5"/><rect x="145.75" y="594.75" width="148.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="153" y="609.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">0  Entradas, grilla</text><text x="153" y="631" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">AOI: GeoJSON,</text><text x="153" y="646" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">SHP o GPKG</text><text x="153" y="661" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">periodo, --gee-project</text><text x="153" y="676" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">--crs (piloto: 9377)</text><text x="153" y="691" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">--resolution 10 m</text><text x="153" y="706" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">centro de píxel ∈ AOI</text><text x="153" y="721" font-size="11.5" fill="#2f7a4f" text-anchor="start" font-weight="normal">→ máscara inside</text><rect x="315" y="458" width="165" height="104" rx="5" fill="#ffffff" stroke="#2c6a9a" stroke-width="1.5"/><rect x="315.75" y="458.75" width="163.5" height="21" rx="4.5" fill="#2c6a9a" fill-opacity="0.16"/><text x="323" y="473.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">1  Consulta GEE</text><text x="323" y="495" font-size="10.4" fill="#56635b" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">reconcile_catalogues</text><text x="323" y="510" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">filterBounds ·</text><text x="323" y="525" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">filterDate</text><text x="323" y="540" font-size="10.9" fill="#1b2420" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">scenes_gee.csv</text><rect x="315" y="838" width="165" height="104" rx="5" fill="#ffffff" stroke="#9a6a17" stroke-width="1.5"/><rect x="315.75" y="838.75" width="163.5" height="21" rx="4.5" fill="#9a6a17" fill-opacity="0.16"/><text x="323" y="853.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">1  Consulta MPC</text><text x="323" y="875" font-size="10.4" fill="#56635b" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">reconcile_catalogues</text><text x="323" y="890" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">búsqueda STAC:</text><text x="323" y="905" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">intersects · datetime</text><text x="323" y="920" font-size="10.9" fill="#1b2420" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">scenes_mpc.csv</text><path d="M295 624 L303 624 L303 510 L313 510" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M295 714 L303 714 L303 890 L313 890" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><rect x="505" y="594" width="195" height="114" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5"/><rect x="505.75" y="594.75" width="193.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="513" y="609.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">2  Conciliación</text><text x="513" y="631" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">clave = datatake sin</text><text x="513" y="646" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">_Nxx.xx + tesela MGRS</text><text x="513" y="661" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">estado: AMBOS · GEE · MPC</text><text x="513" y="676" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">E1 mismo product_id</text><text x="513" y="691" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">E2 otra generación L2A</text><path d="M480 510 L492 510 L492 622 L503 622" fill="none" stroke="#2c6a9a" stroke-width="1.7" marker-end="url(#m2c6a9a)"/><path d="M480 890 L492 890 L492 682 L503 682" fill="none" stroke="#9a6a17" stroke-width="1.7" marker-end="url(#m9a6a17)"/><text x="485" y="572" font-size="10.5" fill="#2c6a9a" text-anchor="end" font-weight="normal" font-style="italic">146</text><text x="485" y="835" font-size="10.5" fill="#9a6a17" text-anchor="end" font-weight="normal" font-style="italic">136</text><path d="M602 708 L602 720" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M505 729 A97.5 7 0 0 1 700 729 V781 A97.5 7 0 0 1 505 781 Z" fill="#f4f5f4" stroke="#2f7a4f" stroke-width="1.3"/><path d="M505 729 A97.5 7 0 0 0 700 729" fill="none" stroke="#2f7a4f" stroke-width="1.3"/><text x="602.5" y="746" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">scene_reconciliation.csv</text><text x="602.5" y="760" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">summary_by_*.csv</text><text x="602.5" y="774" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">summary.json (fecha de consulta)</text><path d="M778 594.0 L834.0 632 L778 670.0 L722.0 632 Z" fill="#fff8e6" stroke="#1b2420" stroke-width="1.4"/><text x="778" y="629.5" font-size="10.8" fill="#1b2420" text-anchor="middle" font-weight="normal">¿leer de?</text><text x="778" y="642.5" font-size="10.8" fill="#56635b" text-anchor="middle" font-weight="normal">según estado</text><path d="M700 632 L720 632" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><text x="842" y="610" font-size="10.3" fill="#1b2420" text-anchor="start" font-weight="normal">AMBOS →</text><text x="842" y="624" font-size="10.3" fill="#1b2420" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">--common-source</text><text x="842" y="638" font-size="10.3" fill="#56635b" text-anchor="start" font-weight="normal">(por defecto MPC)</text><rect x="735" y="458" width="240" height="104" rx="5" fill="#ffffff" stroke="#2c6a9a" stroke-width="1.5"/><rect x="735.75" y="458.75" width="238.5" height="21" rx="4.5" fill="#2c6a9a" fill-opacity="0.16"/><text x="743" y="473.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">4  Lectura GEE</text><text x="743" y="495" font-size="10.4" fill="#56635b" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">composite_impact</text><text x="743" y="510" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">getDownloadURL: B2 B3 B4 B8,</text><text x="743" y="525" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">SCL + banda de validez nativa</text><text x="743" y="540" font-size="11.5" fill="#2c6a9a" text-anchor="start" font-weight="normal">offset ya aplicado</text><rect x="735" y="838" width="240" height="104" rx="5" fill="#ffffff" stroke="#9a6a17" stroke-width="1.5"/><rect x="735.75" y="838.75" width="238.5" height="21" rx="4.5" fill="#9a6a17" fill-opacity="0.16"/><text x="743" y="853.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">4  Lectura MPC</text><text x="743" y="875" font-size="10.4" fill="#56635b" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">composite_impact</text><text x="743" y="890" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">ventanas COG firmadas</text><text x="743" y="905" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">BOA_ADD_OFFSET, cuantificación</text><text x="743" y="920" font-size="11.5" fill="#9a6a17" text-anchor="start" font-weight="normal">del XML del producto (≥ 04.00)</text><path d="M778 594 L778 564" fill="none" stroke="#2c6a9a" stroke-width="1.7" marker-end="url(#m2c6a9a)"/><text x="784" y="582" font-size="10.3" fill="#2c6a9a" text-anchor="start" font-weight="normal">solo GEE</text><path d="M778 670 L778 836" fill="none" stroke="#9a6a17" stroke-width="1.7" marker-end="url(#m9a6a17)"/><text x="784" y="820" font-size="10.3" fill="#9a6a17" text-anchor="start" font-weight="normal">solo MPC</text><rect x="840" y="698" width="150" height="84" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5" stroke-dasharray="5 3"/><rect x="840.75" y="698.75" width="148.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="848" y="713.5" font-size="12" fill="#1b2420" text-anchor="start" font-weight="700">4  Armonizar</text><text x="848" y="735" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">ρ = max(DN + off, 0)</text><text x="848" y="750" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">/ 10 000; remuestreo</text><text x="848" y="765" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">a grilla, vecino próx.</text><path d="M962 562 L962 696" fill="none" stroke="#2c6a9a" stroke-width="1.7" marker-end="url(#m2c6a9a)"/><path d="M930 838 L930 784" fill="none" stroke="#9a6a17" stroke-width="1.7" marker-end="url(#m9a6a17)"/><rect x="1012" y="594" width="150" height="84" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5" stroke-dasharray="5 3"/><rect x="1012.75" y="594.75" width="148.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="1020" y="609.5" font-size="12" fill="#1b2420" text-anchor="start" font-weight="700">5  Máscara validez</text><text x="1020" y="631" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">SCL ∈ {2,4,5,6,7}</text><text x="1020" y="646" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">∧ datos B02–B08</text><text x="1020" y="661" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">∧ máscara inside</text><rect x="1182" y="594" width="150" height="84" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5" stroke-dasharray="5 3"/><rect x="1182.75" y="594.75" width="148.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="1190" y="609.5" font-size="12" fill="#1b2420" text-anchor="start" font-weight="700">6  3×3 + índices</text><text x="1190" y="631" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">media vecinos válidos</text><text x="1190" y="646" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">(centro válido)</text><text x="1190" y="661" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">NDVI · EVI · NDWI</text><path d="M990 744 L1087 744 L1087 680" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M1162 636 L1180 636" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><rect x="1352" y="594" width="140" height="126" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5"/><rect x="1352.75" y="594.75" width="138.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="1360" y="609.5" font-size="11.2" fill="#1b2420" text-anchor="start" font-weight="700">7  Mediana mensual</text><rect x="1359" y="622" width="126" height="28" rx="3" fill="#2f7a4f" fill-opacity="0.12" stroke="#2f7a4f"/><text x="1365" y="634" font-size="10.6" fill="#2f7a4f" text-anchor="start" font-weight="700">COMUN</text><text x="1365" y="646" font-size="9.8" fill="#1b2420" text-anchor="start" font-weight="normal">AMBOS</text><rect x="1359" y="654" width="126" height="28" rx="3" fill="#2c6a9a" fill-opacity="0.12" stroke="#2c6a9a"/><text x="1365" y="666" font-size="10.6" fill="#2c6a9a" text-anchor="start" font-weight="700">GEE</text><text x="1365" y="678" font-size="9.8" fill="#1b2420" text-anchor="start" font-weight="normal">AMBOS + solo GEE</text><rect x="1359" y="686" width="126" height="28" rx="3" fill="#9a6a17" fill-opacity="0.12" stroke="#9a6a17"/><text x="1365" y="698" font-size="10.6" fill="#9a6a17" text-anchor="start" font-weight="700">MPC</text><text x="1365" y="710" font-size="9.8" fill="#1b2420" text-anchor="start" font-weight="normal">AMBOS + solo MPC</text><path d="M1332 636 L1350 636" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M1087 594 L1087 583 L1422 583 L1422 592" fill="none" stroke="#2f7a4f" stroke-width="1.2" stroke-dasharray="6 4" marker-end="url(#m2f7a4f)"/><rect x="1180" y="570" width="150" height="14" fill="#f7faf8"/><text x="1255" y="580" font-size="10" fill="#2f7a4f" text-anchor="middle" font-weight="normal" font-style="italic">conteo válido → OBS_COUNT</text><path d="M700 739 L708 739 L708 688 L1000 688" fill="none" stroke="#2f7a4f" stroke-width="1.3"/><path d="M1000 688 L1345 688" fill="none" stroke="#2f7a4f" stroke-width="1.3" marker-end="url(#m2f7a4f)"/><text x="1250" y="701" font-size="10" fill="#2f7a4f" text-anchor="middle" font-weight="normal" font-style="italic">pertenencia a universo</text><path d="M1422 720 L1422 730" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M1352 739 A70.0 7 0 0 1 1492 739 V805 A70.0 7 0 0 1 1352 805 Z" fill="#f4f5f4" stroke="#2f7a4f" stroke-width="1.3"/><path d="M1352 739 A70.0 7 0 0 0 1492 739" fill="none" stroke="#2f7a4f" stroke-width="1.3"/><text x="1422.0" y="756" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">monthly/</text><text x="1422.0" y="770" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">YYYY-MM_U.tif</text><text x="1422.0" y="784" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">+ .json, SHA-256</text><text x="1422.0" y="798" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">scenes_used.csv</text><path d="M1570 594.0 L1638.0 634 L1570 674.0 L1502.0 634 Z" fill="#fff8e6" stroke="#1b2420" stroke-width="1.4"/><text x="1570" y="625.0" font-size="10.8" fill="#1b2420" text-anchor="middle" font-weight="normal">¿elegible?</text><text x="1570" y="638.0" font-size="10.8" fill="#1b2420" text-anchor="middle" font-weight="normal">≥ 8 meses</text><text x="1570" y="651.0" font-size="10.8" fill="#1b2420" text-anchor="middle" font-weight="normal">4 trimestres</text><path d="M1492 634 L1500 634" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M1570 674 L1570 692" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><text x="1576" y="686" font-size="10" fill="#56635b" text-anchor="start" font-weight="normal" font-style="italic">sí</text><rect x="1508" y="694" width="124" height="72" rx="5" fill="#ffffff" stroke="#2f7a4f" stroke-width="1.5" stroke-dasharray="5 3"/><rect x="1508.75" y="694.75" width="122.5" height="21" rx="4.5" fill="#2f7a4f" fill-opacity="0.16"/><text x="1516" y="709.5" font-size="12" fill="#1b2420" text-anchor="start" font-weight="700">8  Anual</text><text x="1516" y="731" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">medoide de meses</text><text x="1516" y="746" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">NDVI, EVI, NDWI</text><text x="1516" y="761" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">(1,2; 1,2; 2,0)</text><text x="1552" y="782" font-size="10" fill="#56635b" text-anchor="start" font-weight="normal" font-style="italic">no → −9999</text><path d="M220 744 L220 810 L1130 810" fill="none" stroke="#56635b" stroke-width="1.2"/><path d="M1130 810 L1130 680" fill="none" stroke="#56635b" stroke-width="1.2" marker-end="url(#m56635b)"/><path d="M870 810 L870 784" fill="none" stroke="#56635b" stroke-width="1.2" marker-end="url(#m56635b)"/><text x="470" y="805" font-size="10.2" fill="#56635b" text-anchor="middle" font-weight="normal" font-style="italic">AOI · grilla · máscara inside</text><path d="M602 985.0 L661.0 1024 L602 1063.0 L543.0 1024 Z" fill="#fff8e6" stroke="#1b2420" stroke-width="1.4"/><text x="602" y="1015.0" font-size="10.8" fill="#1b2420" text-anchor="middle" font-weight="normal">¿par E2?</text><text x="602" y="1028.0" font-size="10.8" fill="#56635b" text-anchor="middle" font-weight="normal">product_id</text><text x="602" y="1041.0" font-size="10.8" fill="#56635b" text-anchor="middle" font-weight="normal">difiere</text><path d="M602 788 L602 983" fill="none" stroke="#2f7a4f" stroke-width="1.4" marker-end="url(#m2f7a4f)"/><text x="608" y="884" font-size="10.3" fill="#2f7a4f" text-anchor="start" font-weight="normal" font-style="italic">pares</text><path d="M661 1024 L673 1024" fill="none" stroke="#6a4c93" stroke-width="1.5" marker-end="url(#m6a4c93)"/><text x="602" y="1080" font-size="10.2" fill="#56635b" text-anchor="middle" font-weight="normal" font-style="italic">E1 → sin auditoría</text><rect x="675" y="974" width="200" height="124" rx="5" fill="#ffffff" stroke="#6a4c93" stroke-width="1.5"/><rect x="675.75" y="974.75" width="198.5" height="21" rx="4.5" fill="#6a4c93" fill-opacity="0.16"/><text x="683" y="989.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">3  Auditoría máscara E2</text><text x="683" y="1011" font-size="10.4" fill="#56635b" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">e2_frequency --measure-scl</text><text x="683" y="1026" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">SCL de ambas generaciones</text><text x="683" y="1041" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">en grilla nativa de 20 m</text><text x="683" y="1056" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">Jaccard de validez</text><text x="683" y="1071" font-size="11.5" fill="#6a4c93" text-anchor="start" font-weight="normal">piloto: 9 iguales · 12 sin</text><text x="683" y="1086" font-size="11.5" fill="#6a4c93" text-anchor="start" font-weight="normal">px válidos · 1 difiere (J=0,899)</text><path d="M875 1024 L887 1024" fill="none" stroke="#6a4c93" stroke-width="1.5" marker-end="url(#m6a4c93)"/><path d="M889 991 A75.0 7 0 0 1 1039 991 V1057 A75.0 7 0 0 1 889 1057 Z" fill="#f4f5f4" stroke="#6a4c93" stroke-width="1.3"/><path d="M889 991 A75.0 7 0 0 0 1039 991" fill="none" stroke="#6a4c93" stroke-width="1.3"/><text x="964.0" y="1008" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">e2_pairs.csv</text><text x="964.0" y="1022" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">e2_by_*.csv</text><text x="964.0" y="1036" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">e2_scl.csv</text><text x="964.0" y="1050" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">e2_summary.json</text><path d="M1039 1024 L1057 1024" fill="none" stroke="#6a4c93" stroke-width="1.5" marker-end="url(#m6a4c93)"/><rect x="1059" y="974" width="380" height="124" rx="5" fill="#ffffff" stroke="#6a4c93" stroke-width="1.5"/><rect x="1059.75" y="974.75" width="378.5" height="21" rx="4.5" fill="#6a4c93" fill-opacity="0.16"/><text x="1067" y="989.5" font-size="12.5" fill="#1b2420" text-anchor="start" font-weight="700">9  Comparación entre universos</text><text x="1067" y="1011" font-size="10.4" fill="#56635b" text-anchor="start" font-weight="normal" font-family="DejaVu Sans Mono, monospace">composite_impact</text><text x="1067" y="1026" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">por mes e índice: sesgo, MAE, fracción |Δ| &gt; 10⁻⁶</text><text x="1067" y="1041" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">pares: GEE − COMUN · MPC − COMUN · GEE − MPC</text><text x="1067" y="1056" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="normal">medoides anuales: mismos pares, solo píxeles elegibles</text><text x="1067" y="1071" font-size="11.5" fill="#6a4c93" text-anchor="start" font-weight="normal">OBS_COUNT + listas de escenas explican la diferencia</text><path d="M1385 812 L1385 972" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><path d="M1540 766 L1540 864 L1425 864 L1425 972" fill="none" stroke="#2f7a4f" stroke-width="1.5" marker-end="url(#m2f7a4f)"/><text x="1482" y="858" font-size="10" fill="#2f7a4f" text-anchor="middle" font-weight="normal" font-style="italic">medoides anuales</text><text x="1379" y="894" font-size="10" fill="#2f7a4f" text-anchor="end" font-weight="normal" font-style="italic">mensuales</text><path d="M1439 1024 L1455 1024" fill="none" stroke="#6a4c93" stroke-width="1.5" marker-end="url(#m6a4c93)"/><path d="M1457 981 A87.5 7 0 0 1 1632 981 V1047 A87.5 7 0 0 1 1457 1047 Z" fill="#f4f5f4" stroke="#6a4c93" stroke-width="1.3"/><path d="M1457 981 A87.5 7 0 0 0 1632 981" fill="none" stroke="#6a4c93" stroke-width="1.3"/><text x="1544.5" y="998" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">monthly_metrics.csv</text><text x="1544.5" y="1012" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">annual_metrics.csv</text><text x="1544.5" y="1026" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">summary.json</text><text x="1544.5" y="1040" font-size="10.9" fill="#1b2420" text-anchor="middle" font-weight="normal" font-family="DejaVu Sans Mono, monospace">(contrato completo)</text><rect x="1059" y="1112" width="573" height="24" rx="5" fill="#ffffff" stroke="#6a4c93" stroke-width="1.5" stroke-dasharray="5 3"/><rect x="1059.75" y="1112.75" width="571.5" height="21" rx="4.5" fill="#6a4c93" fill-opacity="0.16"/><text x="1067" y="1127.5" font-size="11.5" fill="#1b2420" text-anchor="start" font-weight="700">Prueba de aceptación  docs/acceptance_test.md: valores esperados ⇄ salidas</text><path d="M1544 1054 L1544 1108" fill="none" stroke="#6a4c93" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#m6a4c93)"/><path d="M1544 1108 L1544 1054" stroke="#6a4c93" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#m6a4c93)" fill="none"/><path d="M1100 974 L1100 952 L720 952 L720 774 L703 774" fill="none" stroke="#b23a3a" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#mb23a3a)"/><rect x="1015" y="928" width="340" height="17" fill="#fbf7f0"/><text x="1185" y="941" font-size="10.8" fill="#b23a3a" text-anchor="middle" font-weight="normal" font-style="italic">diferencia → revisar estados de escenas, OBS_COUNT</text><rect x="150" y="978" width="12" height="12" rx="2" fill="#fff" stroke="#2f7a4f" stroke-width="1.4"/><text x="170" y="988" font-size="10.8" fill="#1b2420" text-anchor="start" font-weight="normal">fase (script bajo el título)</text><rect x="150" y="1000" width="12" height="12" rx="2" fill="#fff" stroke="#2f7a4f" stroke-dasharray="3 2" stroke-width="1.4"/><text x="170" y="1010" font-size="10.8" fill="#1b2420" text-anchor="start" font-weight="normal">paso en memoria, no se escribe</text><path d="M150 1026 A6 3 0 0 1 162 1026 V1036 A6 3 0 0 1 150 1036 Z" fill="#f4f5f4" stroke="#56635b"/><text x="170" y="1034" font-size="10.8" fill="#1b2420" text-anchor="start" font-weight="normal">salida guardada (CSV, JSON, GeoTIFF)</text><path d="M156 1044 L162 1051 L156 1058 L150 1051 Z" fill="#fff8e6" stroke="#1b2420"/><text x="170" y="1055" font-size="10.8" fill="#1b2420" text-anchor="start" font-weight="normal">punto de decisión</text><line x1="146" y1="1074" x2="164" y2="1074" stroke="#b23a3a" stroke-width="1.8" stroke-dasharray="6 4"/><text x="170" y="1078" font-size="10.8" fill="#1b2420" text-anchor="start" font-weight="normal">retroalimentación: el resultado obliga a volver</text><line x1="146" y1="1096" x2="164" y2="1096" stroke="#56635b" stroke-width="1.2"/><text x="170" y="1100" font-size="10.8" fill="#1b2420" text-anchor="start" font-weight="normal">AOI / grilla compartida por varias fases</text><text x="150" y="1124" font-size="10.8" fill="#56635b" text-anchor="start" font-weight="normal">Azul = ruta GEE · ocre = ruta MPC</text><text x="150" y="1140" font-size="10.8" fill="#56635b" text-anchor="start" font-weight="normal">verde = motor común · violeta = verificación</text></svg></div>
+<figcaption><b>Diseño del estudio (A) y flujo de datos del kit (B).</b> Los cilindros son archivos que el kit escribe en disco; las cajas punteadas, pasos que ocurren en memoria; los rombos, puntos de decisión. El estado de cada escena en la conciliación decide de qué catálogo se lee y a qué universos entra. La flecha roja punteada marca la retroalimentación: una diferencia en la comparación obliga a volver a revisar el universo de escenas. Haga clic en la figura para ampliarla.</figcaption>
+</figure>
+
+<h2>Qué se encontró</h2>
+
+<h3>1. Mismo producto, mismos datos</h3>
+<p>En los 10 pares donde GEE y MPC servían el mismo <code>product_id</code>, la SCL coincidió en todos los píxeles y la reflectancia también, una vez aplicada la conversión que cada plataforma documenta:</p>
+<figure><div class="chart"><svg viewBox="0 0 640 300" role="img" aria-labelledby="hm-t hm-d"><title id="hm-t">Relación entre el DN de MPC y el de GEE</title><desc id="hm-d">GEE es igual al DN de MPC menos 1000; bajo 1000, GEE vale cero.</desc><rect x="70" y="40" width="176.7" height="210" style="fill:var(--alert-soft)"/>
+<text x="78" y="58" font-size="11" style="fill:var(--alert);font-weight:600">DN MPC &lt; 1000</text>
+<text x="78" y="73" font-size="11" style="fill:var(--alert)">GEE = 0 (cero válido)</text>
+<line x1="70" y1="250" x2="600" y2="250" stroke="var(--muted)"/><line x1="70" y1="250" x2="70" y2="40" stroke="var(--muted)"/>
+<polyline points="70.0,250.0 246.7,250.0 600.0,40.0" fill="none" style="stroke:var(--gee)" stroke-width="3"/>
+<text x="290.8" y="97.8" font-size="12" style="fill:var(--gee);font-weight:600">GEE = MPC − 1000</text>
+<g font-size="11" class="m" text-anchor="middle"><text x="70.0" y="268">0</text><text x="246.7" y="268">1000</text><text x="423.3" y="268">2000</text><text x="600.0" y="268">3000</text><text x="335.0" y="290">DN en MPC (incluye el offset de la baseline 04.00)</text></g>
+<g font-size="11" class="m" text-anchor="end"><text x="64" y="254.0">0</text><text x="64" y="149.0">1000</text><text x="64" y="44.0">2000</text></g>
+<text x="16" y="150" font-size="11" class="m" transform="rotate(-90 16 150)" text-anchor="middle">DN en GEE (S2_SR_HARMONIZED)</text></svg></div><figcaption>Desde la baseline 04.00 (enero de 2022), el número digital incluye un offset de −1000. GEE lo resta en <code>S2_SR_HARMONIZED</code> (en nuestras descargas, los valores que quedaban negativos aparecieron como cero); MPC entrega el valor original y deja el offset en el XML del producto.</figcaption></figure>
+<p>Procesados con la misma cadena, los índices de ambas fuentes difieren como máximo en 4,4 × 10⁻¹⁶. Ejecutada en el servidor de GEE, la cadena también reproduce la local, escena por escena y en la mediana mensual: GEE promedia los dos valores centrales cuando el número de escenas es par, igual que <code>numpy</code>.</p>
+
+<h3>2. Misma adquisición, otra versión del producto</h3>
+<p>ESA reprocesa adquisiciones, y cada catálogo puede conservar una generación L2A distinta de la misma pasada del satélite. Al cruzar los catálogos por adquisición, 22 de 136 registros comunes tenían generaciones distintas, todas con la misma baseline de procesamiento.</p>
+<figure><div class="chart"><svg viewBox="0 0 640 272" role="img" aria-labelledby="e2-t e2-d"><title id="e2-t">Adquisiciones E2 por mes</title><desc id="e2-d">Doce en junio y diez en julio de 2024; ninguna en los meses siguientes hasta abril de 2025.</desc><line x1="60" y1="210" x2="620" y2="210" stroke="var(--muted)"/><line x1="60" y1="210.0" x2="620" y2="210.0" stroke="var(--rule)"/><text x="52" y="214.0" font-size="11" class="m" text-anchor="end">0</text><line x1="60" y1="165.0" x2="620" y2="165.0" stroke="var(--rule)"/><text x="52" y="169.0" font-size="11" class="m" text-anchor="end">3</text><line x1="60" y1="120.0" x2="620" y2="120.0" stroke="var(--rule)"/><text x="52" y="124.0" font-size="11" class="m" text-anchor="end">6</text><line x1="60" y1="75.0" x2="620" y2="75.0" stroke="var(--rule)"/><text x="52" y="79.0" font-size="11" class="m" text-anchor="end">9</text><line x1="60" y1="30.0" x2="620" y2="30.0" stroke="var(--rule)"/><text x="52" y="34.0" font-size="11" class="m" text-anchor="end">12</text><rect x="70.2" y="30.0" width="30.5" height="180.0" style="fill:var(--mpc)"/><text x="85.5" y="24.0" font-size="11" text-anchor="middle" style="font-weight:700">12</text><text x="85.5" y="227" font-size="11" text-anchor="middle">jun</text><rect x="121.1" y="60.0" width="30.5" height="150.0" style="fill:var(--mpc)"/><text x="136.4" y="54.0" font-size="11" text-anchor="middle" style="font-weight:700">10</text><text x="136.4" y="227" font-size="11" text-anchor="middle">jul</text><text x="187.3" y="227" font-size="11" text-anchor="middle">ago</text><text x="238.2" y="227" font-size="11" text-anchor="middle">sep</text><text x="289.1" y="227" font-size="11" text-anchor="middle">oct</text><text x="340.0" y="227" font-size="11" text-anchor="middle">nov</text><text x="390.9" y="227" font-size="11" text-anchor="middle">dic</text><text x="441.8" y="227" font-size="11" text-anchor="middle">ene</text><text x="492.7" y="227" font-size="11" text-anchor="middle">feb</text><text x="543.6" y="227" font-size="11" text-anchor="middle">mar</text><text x="594.5" y="227" font-size="11" text-anchor="middle">abr</text><text x="238.2" y="244" font-size="10.5" class="m" text-anchor="middle">2024</text><text x="518.2" y="244" font-size="10.5" class="m" text-anchor="middle">2025</text><rect x="60" y="256" width="11" height="11" style="fill:var(--mpc)"/><text x="76" y="266" font-size="11">pares E2 (misma adquisición, otra generación)</text></svg></div><figcaption>Las 22 adquisiciones con generaciones distintas se concentran entre el 1 de junio y el 21 de julio de 2024 (12 en junio y 10 en julio). Sugieren un reprocesamiento o una nueva entrega en ese periodo que no encontramos documentado; Collection‑1 solo cubre hasta diciembre de 2023.</figcaption></figure>
+<p>La diferencia de generación rara vez cambió el dato útil. De los 22 pares, 12 no tenían píxeles válidos sobre el predio en ninguna de las dos versiones. De los 10 restantes, 9 tenían la SCL idéntica y solo 1 difería. En ese par, del 1 de junio de 2024, las dos versiones no coincidían en qué píxeles estaban despejados.</p>
+<figure><div class="chart"><svg viewBox="0 0 640 250" role="img" aria-labelledby="vn-t vn-d"><title id="vn-t">Cobertura válida del único par E2 con diferencias</title><desc id="vn-d">2.566 píxeles válidos en ambos catálogos, 103 solo en MPC y 185 solo en GEE; Jaccard 0,899.</desc><circle cx="265" cy="115" r="92" style="fill:var(--mpc);fill-opacity:.22;stroke:var(--mpc)" stroke-width="2"/>
+<circle cx="375" cy="115" r="95" style="fill:var(--gee);fill-opacity:.22;stroke:var(--gee)" stroke-width="2"/>
+<text x="205" y="14" font-size="12" style="fill:var(--mpc);font-weight:700" text-anchor="middle">Válidos en MPC: 2.669</text>
+<text x="440" y="14" font-size="12" style="fill:var(--gee);font-weight:700" text-anchor="middle">Válidos en GEE: 2.751</text>
+<text x="215" y="120" font-size="16" text-anchor="middle" style="font-weight:700">103</text><text x="215" y="138" font-size="10" text-anchor="middle" class="m">solo MPC</text>
+<text x="320" y="120" font-size="18" text-anchor="middle" style="font-weight:700">2.566</text><text x="320" y="138" font-size="10" text-anchor="middle" class="m">en ambos</text>
+<text x="430" y="120" font-size="16" text-anchor="middle" style="font-weight:700">185</text><text x="430" y="138" font-size="10" text-anchor="middle" class="m">solo GEE</text>
+<text x="320" y="238" font-size="13" text-anchor="middle">Jaccard = 2.566 / (2.566 + 103 + 185) = <tspan style="font-weight:700">0,899</tspan></text></svg></div><figcaption>Píxeles válidos del par con diferencias (unión de 2.854 píxeles válidos en alguna de las dos versiones). Los 288 desacuerdos se deben a la SCL; ninguno a las máscaras de las bandas espectrales. Diagrama esquemático: las áreas no son proporcionales.</figcaption></figure>
+
+<h3>3. Un cero que no era un vacío</h3>
+<p>En dos escenas aparecieron 31 píxeles válidos en una fuente e inválidos en la otra. No eran diferencias del producto. El recorte a cero de GEE produce valores 0 legítimos en la banda azul, y al guardar el archivo con <code>nodata=0</code> esos píxeles se leían como vacíos.</p>
+<figure><div class="chart"><svg viewBox="0 0 640 250" role="img" aria-labelledby="nd-t nd-d"><title id="nd-t">Colisión entre ceros válidos y nodata</title><desc id="nd-d">Valores cero legítimos se leen como sin dato cuando el archivo usa cero como marca de nodata.</desc><defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/></marker></defs>
+<text x="40" y="26" font-size="12" style="font-weight:600">B02 armonizado en GEE (ceros válidos)</text><rect x="40" y="40" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="60" y="65" font-size="11" text-anchor="middle">412</text><rect x="82" y="40" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="102" y="65" font-size="11" text-anchor="middle">388</text><rect x="124" y="40" width="40" height="40" style="fill:var(--alert-soft);stroke:var(--alert)"/><text x="144" y="65" font-size="12" text-anchor="middle" style="font-weight:700;fill:var(--alert)">0</text><rect x="166" y="40" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="186" y="65" font-size="11" text-anchor="middle">455</text><rect x="40" y="82" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="60" y="107" font-size="11" text-anchor="middle">390</text><rect x="82" y="82" width="40" height="40" style="fill:var(--alert-soft);stroke:var(--alert)"/><text x="102" y="107" font-size="12" text-anchor="middle" style="font-weight:700;fill:var(--alert)">0</text><rect x="124" y="82" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="144" y="107" font-size="11" text-anchor="middle">402</text><rect x="166" y="82" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="186" y="107" font-size="11" text-anchor="middle">377</text><rect x="40" y="124" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="60" y="149" font-size="11" text-anchor="middle">365</text><rect x="82" y="124" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="102" y="149" font-size="11" text-anchor="middle">371</text><rect x="124" y="124" width="40" height="40" style="fill:var(--alert-soft);stroke:var(--alert)"/><text x="144" y="149" font-size="12" text-anchor="middle" style="font-weight:700;fill:var(--alert)">0</text><rect x="166" y="124" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="186" y="149" font-size="11" text-anchor="middle">398</text><rect x="40" y="166" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="60" y="191" font-size="11" text-anchor="middle">380</text><rect x="82" y="166" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="102" y="191" font-size="11" text-anchor="middle">392</text><rect x="124" y="166" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="144" y="191" font-size="11" text-anchor="middle">405</text><rect x="166" y="166" width="40" height="40" style="fill:var(--alert-soft);stroke:var(--alert)"/><text x="186" y="191" font-size="12" text-anchor="middle" style="font-weight:700;fill:var(--alert)">0</text>
+<line x1="230" y1="124" x2="400" y2="124" stroke="var(--muted)" marker-end="url(#ar2)"/><text x="315" y="112" font-size="11" text-anchor="middle">GeoTIFF con nodata=0</text>
+<text x="410" y="26" font-size="12" style="font-weight:600">Lo que lee el siguiente programa</text><rect x="410" y="40" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="430" y="65" font-size="11" text-anchor="middle">412</text><rect x="452" y="40" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="472" y="65" font-size="11" text-anchor="middle">388</text><rect x="494" y="40" width="40" height="40" style="fill:var(--paper);stroke:var(--alert)" stroke-dasharray="3 3"/><text x="514" y="65" font-size="10" text-anchor="middle" style="fill:var(--alert)">sin dato</text><rect x="536" y="40" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="556" y="65" font-size="11" text-anchor="middle">455</text><rect x="410" y="82" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="430" y="107" font-size="11" text-anchor="middle">390</text><rect x="452" y="82" width="40" height="40" style="fill:var(--paper);stroke:var(--alert)" stroke-dasharray="3 3"/><text x="472" y="107" font-size="10" text-anchor="middle" style="fill:var(--alert)">sin dato</text><rect x="494" y="82" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="514" y="107" font-size="11" text-anchor="middle">402</text><rect x="536" y="82" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="556" y="107" font-size="11" text-anchor="middle">377</text><rect x="410" y="124" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="430" y="149" font-size="11" text-anchor="middle">365</text><rect x="452" y="124" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="472" y="149" font-size="11" text-anchor="middle">371</text><rect x="494" y="124" width="40" height="40" style="fill:var(--paper);stroke:var(--alert)" stroke-dasharray="3 3"/><text x="514" y="149" font-size="10" text-anchor="middle" style="fill:var(--alert)">sin dato</text><rect x="536" y="124" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="556" y="149" font-size="11" text-anchor="middle">398</text><rect x="410" y="166" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="430" y="191" font-size="11" text-anchor="middle">380</text><rect x="452" y="166" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="472" y="191" font-size="11" text-anchor="middle">392</text><rect x="494" y="166" width="40" height="40" style="fill:var(--gee-soft);stroke:var(--rule)"/><text x="514" y="191" font-size="11" text-anchor="middle">405</text><rect x="536" y="166" width="40" height="40" style="fill:var(--paper);stroke:var(--alert)" stroke-dasharray="3 3"/><text x="556" y="191" font-size="10" text-anchor="middle" style="fill:var(--alert)">sin dato</text>
+<text x="320" y="238" font-size="11" text-anchor="middle" class="m">Esquema ilustrativo con valores ficticios. En el piloto fueron 31 píxeles en dos escenas.</text></svg></div><figcaption>La armonización de GEE y la marca de "sin dato" parecen convenciones independientes, pero juntas producen una falsa diferencia entre plataformas.</figcaption></figure>
+
+<h3>4. Escenas que solo tiene un catálogo</h3>
+<p>Este fue el hallazgo decisivo. En 11 meses, GEE tenía 10 registros escena–tesela (cinco adquisiciones, cada una en las dos teselas) que MPC no devolvía, todos con cobertura completa del predio. MPC no tenía ninguna que faltara en GEE.</p>
+<figure><div class="chart"><svg viewBox="0 0 640 272" role="img" aria-labelledby="sg-t sg-d"><title id="sg-t">Adquisiciones presentes solo en GEE, por mes y satélite</title><desc id="sg-d">Septiembre de 2024: dos de Sentinel-2A y dos de Sentinel-2B. Diciembre de 2024, enero y febrero de 2025: dos de Sentinel-2C cada mes. Ninguna adquisición presente solo en MPC.</desc><line x1="60" y1="210" x2="620" y2="210" stroke="var(--muted)"/><line x1="60" y1="210.0" x2="620" y2="210.0" stroke="var(--rule)"/><text x="52" y="214.0" font-size="11" class="m" text-anchor="end">0</text><line x1="60" y1="165.0" x2="620" y2="165.0" stroke="var(--rule)"/><text x="52" y="169.0" font-size="11" class="m" text-anchor="end">1</text><line x1="60" y1="120.0" x2="620" y2="120.0" stroke="var(--rule)"/><text x="52" y="124.0" font-size="11" class="m" text-anchor="end">2</text><line x1="60" y1="75.0" x2="620" y2="75.0" stroke="var(--rule)"/><text x="52" y="79.0" font-size="11" class="m" text-anchor="end">3</text><line x1="60" y1="30.0" x2="620" y2="30.0" stroke="var(--rule)"/><text x="52" y="34.0" font-size="11" class="m" text-anchor="end">4</text><text x="85.5" y="227" font-size="11" text-anchor="middle">jun</text><text x="136.4" y="227" font-size="11" text-anchor="middle">jul</text><text x="187.3" y="227" font-size="11" text-anchor="middle">ago</text><rect x="222.9" y="120.0" width="30.5" height="90.0" style="fill:var(--gee)"/><rect x="222.9" y="30.0" width="30.5" height="90.0" style="fill:var(--green)"/><text x="238.2" y="24.0" font-size="11" text-anchor="middle" style="font-weight:700">4</text><text x="238.2" y="227" font-size="11" text-anchor="middle">sep</text><text x="289.1" y="227" font-size="11" text-anchor="middle">oct</text><text x="340.0" y="227" font-size="11" text-anchor="middle">nov</text><rect x="375.6" y="120.0" width="30.5" height="90.0" style="fill:var(--alert)"/><text x="390.9" y="114.0" font-size="11" text-anchor="middle" style="font-weight:700">2</text><text x="390.9" y="227" font-size="11" text-anchor="middle">dic</text><rect x="426.5" y="120.0" width="30.5" height="90.0" style="fill:var(--alert)"/><text x="441.8" y="114.0" font-size="11" text-anchor="middle" style="font-weight:700">2</text><text x="441.8" y="227" font-size="11" text-anchor="middle">ene</text><rect x="477.5" y="120.0" width="30.5" height="90.0" style="fill:var(--alert)"/><text x="492.7" y="114.0" font-size="11" text-anchor="middle" style="font-weight:700">2</text><text x="492.7" y="227" font-size="11" text-anchor="middle">feb</text><text x="543.6" y="227" font-size="11" text-anchor="middle">mar</text><text x="594.5" y="227" font-size="11" text-anchor="middle">abr</text><text x="238.2" y="244" font-size="10.5" class="m" text-anchor="middle">2024</text><text x="518.2" y="244" font-size="10.5" class="m" text-anchor="middle">2025</text><rect x="60" y="256" width="11" height="11" style="fill:var(--gee)"/><text x="76" y="266" font-size="11">Satélite S2A</text><rect x="210" y="256" width="11" height="11" style="fill:var(--green)"/><text x="226" y="266" font-size="11">Satélite S2B</text><rect x="360" y="256" width="11" height="11" style="fill:var(--alert)"/><text x="376" y="266" font-size="11">Satélite S2C</text></svg></div><figcaption>Las de diciembre de 2024 a febrero de 2025 son de Sentinel‑2C, el satélite que reemplazó a Sentinel‑2A el 21 de enero de 2025. El registro del 13 de diciembre coincide con el primer día de publicación del conjunto preliminar de Sentinel‑2C, y el del 22 de enero es el día siguiente al relevo. Las de septiembre de 2024 son de Sentinel‑2A y 2B, y su ausencia en MPC no tiene aún una explicación documentada.</figcaption></figure>
+<p>La causa probable está en la forma en que cada plataforma ingiere escenas nuevas o reprocesadas, y en cuándo lo hace. GEE y MPC reciben los productos de ESA por canales propios y los incorporan a su catálogo con calendarios distintos. No encontramos un calendario publicado de ingesta para ninguna de las dos. Además, los productos de Sentinel‑2C adquiridos entre el 29 de octubre y el 19 de diciembre de 2024 se distribuyeron primero con una baseline provisional y ESA los está reprocesando (aviso de abril de 2026), así que el inventario de ese periodo sigue cambiando. Por eso conviene registrar la fecha de consulta y la baseline de cada escena.</p>
+<p>Estas escenas explican una diferencia que al principio parecía de la plataforma. El compuesto mensual de enero de 2025 exportado desde GEE traía 8 observaciones por píxel, frente a 6 en el cálculo con escenas comunes. Recalculado con las mismas 8 escenas, el resultado de GEE coincide exactamente con el local.</p>
+<figure><div class="chart"><svg viewBox="0 0 680 225" role="img" aria-labelledby="tl-t tl-d"><title id="tl-t">Escenas usadas en diciembre de 2024 y enero de 2025</title><desc id="tl-d">Diciembre: cuatro escenas comunes y una de Sentinel-2C solo en GEE el día 13. Enero: seis escenas comunes y dos de Sentinel-2C solo en GEE el día 22.</desc><text x="10" y="60" font-size="13" style="font-weight:700">dic 2024</text><line x1="90" y1="55" x2="560" y2="55" stroke="var(--rule)" stroke-width="2"/><text x="90" y="97" font-size="10" class="m" text-anchor="middle">1</text><text x="231" y="97" font-size="10" class="m" text-anchor="middle">10</text><text x="388" y="97" font-size="10" class="m" text-anchor="middle">20</text><text x="560" y="97" font-size="10" class="m" text-anchor="middle">31</text><circle cx="200" cy="55" r="6" style="fill:var(--green)"/><circle cx="200" cy="44" r="6" style="fill:var(--green)"/><text x="200" y="77" font-size="10" text-anchor="middle" class="m">08</text><circle cx="278" cy="55" r="6" style="fill:var(--green)"/><text x="278" y="77" font-size="10" text-anchor="middle" class="m">13</text><circle cx="297" cy="55" r="6" style="fill:var(--panel);stroke:var(--alert)" stroke-width="2.5"/><text x="297" y="77" font-size="10" text-anchor="middle" class="m">13·b</text><circle cx="356" cy="55" r="6" style="fill:var(--green)"/><text x="356" y="77" font-size="10" text-anchor="middle" class="m">18</text><text x="572" y="60" font-size="11.5">común 4 · GEE 5</text><text x="10" y="150" font-size="13" style="font-weight:700">ene 2025</text><line x1="90" y1="145" x2="560" y2="145" stroke="var(--rule)" stroke-width="2"/><text x="90" y="187" font-size="10" class="m" text-anchor="middle">1</text><text x="231" y="187" font-size="10" class="m" text-anchor="middle">10</text><text x="388" y="187" font-size="10" class="m" text-anchor="middle">20</text><text x="560" y="187" font-size="10" class="m" text-anchor="middle">31</text><circle cx="184" cy="145" r="6" style="fill:var(--green)"/><text x="184" y="167" font-size="10" text-anchor="middle" class="m">07</text><circle cx="262" cy="145" r="6" style="fill:var(--green)"/><circle cx="262" cy="134" r="6" style="fill:var(--green)"/><text x="262" y="167" font-size="10" text-anchor="middle" class="m">12</text><circle cx="341" cy="145" r="6" style="fill:var(--green)"/><text x="341" y="167" font-size="10" text-anchor="middle" class="m">17</text><circle cx="419" cy="145" r="6" style="fill:var(--panel);stroke:var(--alert)" stroke-width="2.5"/><circle cx="419" cy="134" r="6" style="fill:var(--panel);stroke:var(--alert)" stroke-width="2.5"/><text x="419" y="167" font-size="10" text-anchor="middle" class="m">22</text><circle cx="497" cy="145" r="6" style="fill:var(--green)"/><circle cx="497" cy="134" r="6" style="fill:var(--green)"/><text x="497" y="167" font-size="10" text-anchor="middle" class="m">27</text><text x="572" y="150" font-size="11.5">común 6 · GEE 8</text><circle cx="100" cy="205" r="6" style="fill:var(--green)"/><text x="112" y="209" font-size="11">en GEE y MPC</text><circle cx="250" cy="205" r="6" style="fill:var(--panel);stroke:var(--alert)" stroke-width="2.5"/><text x="262" y="209" font-size="11">solo en GEE (Sentinel‑2C)</text><text x="470" y="209" font-size="11" class="m">puntos apilados = teselas</text></svg></div><figcaption>Escenas de los dos meses evaluados, con filtro de nubosidad de escena ≤ 20 % aplicado a cada registro escena–tesela. El 13 de diciembre hubo dos adquisiciones: una presente en ambos catálogos y otra de Sentinel‑2C solo en GEE, de la que solo una de sus dos teselas pasó el filtro. En enero, la adquisición del 22 entra dos veces, una por tesela.</figcaption></figure>
+<div class="tbl"><table>
+  <thead><tr><th>Mes</th><th>Escenas común / GEE</th><th>Índice</th><th>Sesgo GEE − común</th><th>Error medio absoluto</th></tr></thead>
+  <tbody>
+    <tr><td>Dic 2024</td><td class="num">4 / 5</td><td>NDVI</td><td class="num">−0,0005</td><td class="num">0,0059</td></tr>
+    <tr><td></td><td></td><td>EVI</td><td class="num">−0,0021</td><td class="num">0,0074</td></tr>
+    <tr><td></td><td></td><td>NDWI</td><td class="num">−0,0010</td><td class="num">0,0036</td></tr>
+    <tr><td>Ene 2025</td><td class="num">6 / 8</td><td>NDVI</td><td class="num">−0,0087</td><td class="num">0,0122</td></tr>
+    <tr><td></td><td></td><td>EVI</td><td class="num">−0,0025</td><td class="num">0,0080</td></tr>
+    <tr><td></td><td></td><td>NDWI</td><td class="num">+0,0047</td><td class="num">0,0058</td></tr>
+  </tbody>
+</table></div>
+<p class="small muted">7.348 píxeles, misma cadena analítica; la única diferencia entre columnas es el universo de escenas. También hubo escenas solo en GEE en septiembre de 2024 y febrero de 2025, cuyo efecto no se calculó; las extra de enero son todas de Sentinel‑2C, que difiere de Sentinel‑2A en torno al 1 % (Clerc et al., 2026), así que parte del efecto podría deberse al satélite.</p>
+<div class="note good"><b>Lectura.</b> La diferencia entre plataformas no estaba en el cálculo sino en los datos de entrada. Una comparación que suponía "las mismas escenas" no las tenía: el emparejamiento por identificadores descartó en silencio las adquisiciones sin contraparte en MPC.</div>
+
+<h2>Lecciones aprendidas</h2>
+<ol class="lessons">
+  <li><b>Concilie los catálogos antes de combinarlos.</b> Cruce las escenas por adquisición (datatake y tesela) y por huella sobre el área de interés, nunca por coincidencia de texto de identificadores. Liste y decida cada escena presente en un solo catálogo.</li>
+  <li><b>Verifique la identidad del producto.</b> Coincidir en fecha y datatake no basta; compare el <code>product_id</code>. Una generación distinta puede cambiar la máscara de nubes.</li>
+  <li><b>Aplique la radiometría de forma explícita.</b> En MPC, lea <code>BOA_ADD_OFFSET</code> y <code>BOA_QUANTIFICATION_VALUE</code> del XML. En GEE, recuerde que <code>S2_SR_HARMONIZED</code> ya resta el offset y recorta a cero.</li>
+  <li><b>Use una marca de "sin dato" que no pueda ser un valor real.</b> −9999 en salidas de punto flotante, o una banda de máscara aparte. Nunca 0 sobre reflectancia armonizada.</li>
+  <li><b>Guarde la procedencia dentro del producto.</b> Una banda con el número de observaciones por píxel y la lista o huella de las escenas en el propio archivo. En GEE, las propiedades asignadas con <code>.set()</code> no se escriben en el GeoTIFF exportado.</li>
+  <li><b>Registre la baseline de cada escena.</b> Productos provisionales, como los primeros de Sentinel‑2C, pueden ser reemplazados después.</li>
+  <li><b>Calcule con un solo motor y varíe solo la fuente.</b> Para tramos nuevos, descargue de cualquiera de las dos plataformas y procese siempre con la misma cadena. Así, cualquier diferencia se puede atribuir a los datos.</li>
+</ol>
+
+<h2>Caja de herramientas</h2>
+<p>Tres scripts de Python aplican estas lecciones a cualquier área y periodo. Están validados sobre el caso piloto: reproducen el par con generación distinta de junio de 2024, las escenas de Sentinel‑2C presentes solo en GEE, los 7.348 píxeles del predio y el desplazamiento de −0,0087 en enero de 2025.</p>
+<div class="tbl"><table>
+  <thead><tr><th>Script</th><th>Pregunta</th><th>Salida principal</th></tr></thead>
+  <tbody>
+    <tr><td><code>reconcile_catalogues.py</code></td><td>¿Qué adquisiciones existen solo en GEE o solo en MPC? ¿Cuáles tienen otra generación L2A?</td><td><code>scene_reconciliation.csv</code> y resúmenes por mes, año, satélite y tesela</td></tr>
+    <tr><td><code>e2_frequency.py</code></td><td>¿Con qué frecuencia hay generaciones distintas y dónde se concentran? ¿Cambian la máscara de nubes?</td><td>Proporciones por estrato y acuerdo de SCL por par</td></tr>
+    <tr><td><code>composite_impact.py</code></td><td>¿Cuánto mueven las escenas de un solo catálogo las medianas mensuales y los compuestos anuales?</td><td>Métricas por mes y año; GeoTIFF con <code>OBS_COUNT</code> y huella de escenas</td></tr>
+  </tbody>
+</table></div>
+<p><b>Instalación y uso.</b> Requiere Python 3.10 o superior y una cuenta de Earth Engine autenticada.</p>
+<div class="cmd">pip install earthengine-api pystac-client planetary-computer geopandas shapely rasterio pyproj pandas numpy requests
+earthengine authenticate</div>
+<div class="cmd">python reconcile_catalogues.py --aoi aoi.geojson --start 2024-01-01 --end 2025-06-30 \
+    --gee-project MY_PROJECT --out reconciliation
+
+python e2_frequency.py --reconciliation reconciliation/scene_reconciliation.csv \
+    --measure-scl --aoi aoi.geojson --gee-project MY_PROJECT --out e2
+
+python composite_impact.py --reconciliation reconciliation/scene_reconciliation.csv \
+    --aoi aoi.geojson --gee-project MY_PROJECT --only-months-with-difference --out impact</div>
+<details>
+  <summary>reconcile_catalogues.py · 360 líneas</summary>
+  <div class="codebar"><span class="muted">Python 3.12 · código y comentarios en inglés</span><button class="copy" type="button" data-target="code-a">Copiar código</button></div>
+  <pre class="code" id="code-a">#!/usr/bin/env python3
+# Part of gee-mpc-sentinel2-validation v1.0.0
+# Author: Heiber Alexander Pantevez Villamil (hapantevezv@unal.edu.co, ORCID 0000-0003-1797-0057), Universidad Nacional de Colombia
+# Licence: MIT (see LICENSE)
+&quot;&quot;&quot;
+reconcile_catalogues.py
+=======================
+
+Reconciles the Sentinel-2 L2A catalogues of Google Earth Engine (GEE) and
+Microsoft Planetary Computer (MPC) over an area of interest (AOI) and a period.
+
+Why it exists
+-------------
+Before GEE and MPC are combined in one series, one must know whether both
+catalogues hold the same acquisitions and the same products. In the pilot case
+that motivated this code, GEE held Sentinel-2C acquisitions that MPC did not,
+and pairing by identifiers dropped them silently. The result was an NDVI
+difference that looked like a platform effect and actually came from the
+scene universe.
+
+What it does
+------------
+1. Lists in GEE (COPERNICUS/S2_SR_HARMONIZED) and in MPC (sentinel-2-l2a) every
+   scene whose footprint intersects the AOI in the period.
+2. Matches both lists by acquisition = datatake (without baseline suffix)
+   + MGRS tile. Never by string matching of identifiers.
+3. Labels each acquisition:
+     BOTH       present in both catalogues
+     GEE_ONLY   only in GEE
+     MPC_ONLY   only in MPC
+   and, for BOTH, the product identity:
+     E1         same product_id (same L2A generation)
+     E2         same acquisition, different L2A generation
+4. Summarises by month, year, platform (S2A/S2B/S2C) and tile.
+
+No scene is dropped silently: everything found in a catalogue stays in the
+reconciliation table with its state.
+
+Usage
+-----
+    python reconcile_catalogues.py --aoi aoi.geojson --start 2024-01-01 \\
+        --end 2025-06-30 --gee-project MY_PROJECT --out reconciliation
+
+Outputs (in --out)
+------------------
+    scenes_gee.csv               raw GEE listing
+    scenes_mpc.csv               raw MPC listing
+    scene_reconciliation.csv     one row per acquisition (input of
+                                 e2_frequency.py and composite_impact.py)
+    summary_by_month.csv, summary_by_year.csv,
+    summary_by_platform.csv, summary_by_tile.csv
+    summary.json                 parameters, counts and versions
+
+Requirements: earthengine-api, pystac-client, geopandas, shapely, pandas.
+GEE authentication beforehand: `earthengine authenticate`.
+&quot;&quot;&quot;
+
+from __future__ import annotations
+
+import argparse
+from datetime import date, datetime, timedelta, timezone
+import json
+from pathlib import Path
+import re
+import sys
+
+import ee
+import geopandas as gpd
+import pandas as pd
+from pystac_client import Client
+import shapely
+from shapely.geometry import mapping, shape
+
+GEE_COLLECTION = &quot;COPERNICUS/S2_SR_HARMONIZED&quot;
+MPC_STAC = &quot;https://planetarycomputer.microsoft.com/api/stac/v1&quot;
+MPC_COLLECTION = &quot;sentinel-2-l2a&quot;
+
+GEE_PROPS = [
+    &quot;PRODUCT_ID&quot;, &quot;DATATAKE_IDENTIFIER&quot;, &quot;MGRS_TILE&quot;, &quot;SPACECRAFT_NAME&quot;,
+    &quot;SENSING_ORBIT_NUMBER&quot;, &quot;PROCESSING_BASELINE&quot;, &quot;GENERATION_TIME&quot;,
+    &quot;CLOUDY_PIXEL_PERCENTAGE&quot;,
+]
+
+
+# ---------------------------------------------------------------- utilities
+
+def read_aoi(path: Path) -&gt; shapely.Geometry:
+    &quot;&quot;&quot;Reads the AOI (GeoJSON, shapefile, GPKG) as one 2D geometry in EPSG:4326.&quot;&quot;&quot;
+    gdf = gpd.read_file(path)
+    if gdf.empty:
+        raise ValueError(f&quot;{path}: the AOI has no geometries.&quot;)
+    if gdf.crs is None:
+        raise ValueError(f&quot;{path}: the AOI declares no coordinate reference system.&quot;)
+    geom = gdf.to_crs(4326).geometry.union_all()
+    geom = shapely.force_2d(shapely.make_valid(geom))
+    if geom.is_empty or geom.geom_type not in (&quot;Polygon&quot;, &quot;MultiPolygon&quot;):
+        raise ValueError(f&quot;{path}: a polygon was expected; got {geom.geom_type}.&quot;)
+    return geom
+
+
+def aoi_to_ee(geom: shapely.Geometry) -&gt; ee.Geometry:
+    &quot;&quot;&quot;Clean GeoJSON (lists, 2D) for Earth Engine.&quot;&quot;&quot;
+    return ee.Geometry(json.loads(json.dumps(mapping(geom))))
+
+
+def platform(value: str | None) -&gt; str | None:
+    &quot;&quot;&quot;&#x27;Sentinel-2A&#x27; / &#x27;sentinel-2c&#x27; / &#x27;S2B&#x27; -&gt; &#x27;S2A&#x27; / &#x27;S2C&#x27; / &#x27;S2B&#x27;.&quot;&quot;&quot;
+    if not value:
+        return None
+    m = re.search(r&quot;2\s*([ABCD])&quot;, str(value).upper())
+    return f&quot;S2{m.group(1)}&quot; if m else str(value)
+
+
+def datatake_core(value: str | None) -&gt; str | None:
+    &quot;&quot;&quot;&#x27;GS2B_20240601T152659_037803_N05.10&#x27; -&gt; &#x27;GS2B_20240601T152659_037803&#x27;.
+
+    The _Nxx.xx suffix is the processing baseline: it is removed so that two
+    L2A generations of the same acquisition share a key.
+    &quot;&quot;&quot;
+    if not value:
+        return None
+    return re.sub(r&quot;_N\d{2}\.\d{2}$&quot;, &quot;&quot;, str(value).strip())
+
+
+def tile(value: str | None) -&gt; str | None:
+    return str(value).upper().removeprefix(&quot;T&quot;) if value else None
+
+
+def product(value: str | None) -&gt; str | None:
+    return str(value).removesuffix(&quot;.SAFE&quot;) if value else None
+
+
+def baseline(value) -&gt; float | None:
+    try:
+        return float(str(value).replace(&quot;N&quot;, &quot;&quot;))
+    except (TypeError, ValueError):
+        return None
+
+
+# -------------------------------------------------------------- GEE catalogue
+
+def list_gee(aoi: ee.Geometry, start: date, end: date) -&gt; pd.DataFrame:
+    end_excl = (end + timedelta(days=1)).isoformat()
+    col = (ee.ImageCollection(GEE_COLLECTION)
+           .filterBounds(aoi).filterDate(start.isoformat(), end_excl))
+    aoi_area = aoi.area(10)
+
+    def to_feature(img):
+        coverage = img.geometry().intersection(aoi, ee.ErrorMargin(10)).area(10).divide(aoi_area)
+        return ee.Feature(None, img.toDictionary().select(GEE_PROPS, True)
+                          .set(&quot;asset_id&quot;, ee.String(GEE_COLLECTION + &quot;/&quot;).cat(img.get(&quot;system:index&quot;)))
+                          .set(&quot;time_start&quot;, img.get(&quot;system:time_start&quot;))
+                          .set(&quot;aoi_coverage&quot;, coverage))
+
+    fc = ee.FeatureCollection(col.map(to_feature))
+    n = int(col.size().getInfo())
+    rows = []
+    for offset in range(0, n, 500):
+        for f in fc.toList(500, offset).getInfo():
+            rows.append(f[&quot;properties&quot;])
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    for prop in GEE_PROPS:              # properties absent from the whole batch
+        if prop not in df:
+            df[prop] = None
+    df[&quot;sensing_utc&quot;] = pd.to_datetime(df[&quot;time_start&quot;], unit=&quot;ms&quot;, utc=True)
+    df[&quot;platform&quot;] = df[&quot;SPACECRAFT_NAME&quot;].map(platform)
+    df[&quot;tile&quot;] = df[&quot;MGRS_TILE&quot;].map(tile)
+    df[&quot;datatake&quot;] = df[&quot;DATATAKE_IDENTIFIER&quot;].map(datatake_core)
+    df[&quot;product&quot;] = df[&quot;PRODUCT_ID&quot;].map(product)
+    df[&quot;baseline&quot;] = df[&quot;PROCESSING_BASELINE&quot;].map(baseline)
+    df[&quot;generation&quot;] = pd.to_datetime(pd.to_numeric(df[&quot;GENERATION_TIME&quot;], errors=&quot;coerce&quot;),
+                                      unit=&quot;ms&quot;, utc=True, errors=&quot;coerce&quot;)
+    df[&quot;cloud_cover&quot;] = pd.to_numeric(df[&quot;CLOUDY_PIXEL_PERCENTAGE&quot;], errors=&quot;coerce&quot;)
+    return df
+
+
+# -------------------------------------------------------------- MPC catalogue
+
+def list_mpc(aoi_geom: shapely.Geometry, start: date, end: date) -&gt; pd.DataFrame:
+    client = Client.open(MPC_STAC)
+    search = client.search(
+        collections=[MPC_COLLECTION], intersects=mapping(aoi_geom),
+        datetime=f&quot;{start.isoformat()}T00:00:00Z/{end.isoformat()}T23:59:59Z&quot;,
+    )
+    rows = []
+    for item in search.items():
+        p = item.properties
+        footprint = shape(item.geometry)
+        rows.append({
+            &quot;item_id&quot;: item.id,
+            &quot;sensing_utc&quot;: item.datetime,
+            &quot;platform&quot;: platform(p.get(&quot;platform&quot;)),
+            &quot;tile&quot;: tile(p.get(&quot;s2:mgrs_tile&quot;)),
+            &quot;datatake&quot;: datatake_core(p.get(&quot;s2:datatake_id&quot;)),
+            &quot;product&quot;: product(p.get(&quot;s2:product_uri&quot;)),
+            &quot;baseline&quot;: baseline(p.get(&quot;s2:processing_baseline&quot;)),
+            &quot;generation&quot;: pd.to_datetime(p.get(&quot;s2:generation_time&quot;), utc=True, errors=&quot;coerce&quot;),
+            &quot;cloud_cover&quot;: p.get(&quot;eo:cloud_cover&quot;),
+            &quot;relative_orbit&quot;: p.get(&quot;sat:relative_orbit&quot;),
+            # Ratio in degrees; enough to tell full coverage from an edge.
+            &quot;aoi_coverage&quot;: footprint.intersection(aoi_geom).area / aoi_geom.area,
+        })
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df[&quot;sensing_utc&quot;] = pd.to_datetime(df[&quot;sensing_utc&quot;], utc=True)
+    return df
+
+
+# ------------------------------------------------------------- reconciliation
+
+def acquisition_key(df: pd.DataFrame) -&gt; pd.Series:
+    &quot;&quot;&quot;datatake + tile; if the datatake is missing, platform + sensing time (s) + tile.&quot;&quot;&quot;
+    fallback = (df[&quot;platform&quot;].fillna(&quot;S2?&quot;) + &quot;_&quot;
+                + df[&quot;sensing_utc&quot;].dt.strftime(&quot;%Y%m%dT%H%M%S&quot;))
+    return df[&quot;datatake&quot;].fillna(fallback) + &quot;|&quot; + df[&quot;tile&quot;].fillna(&quot;?&quot;)
+
+
+def group(df: pd.DataFrame, suffix: str, id_col: str) -&gt; pd.DataFrame:
+    &quot;&quot;&quot;One row per acquisition and catalogue; keeps every generation.&quot;&quot;&quot;
+    def join(s):
+        return &quot;|&quot;.join(sorted({str(v) for v in s.dropna()}))
+    g = df.groupby(&quot;key&quot;).agg(
+        sensing_utc=(&quot;sensing_utc&quot;, &quot;min&quot;),
+        platform=(&quot;platform&quot;, &quot;first&quot;),
+        tile=(&quot;tile&quot;, &quot;first&quot;),
+        ids=(id_col, join),
+        products=(&quot;product&quot;, join),
+        n_products=(&quot;product&quot;, &quot;nunique&quot;),
+        baseline=(&quot;baseline&quot;, &quot;max&quot;),
+        generation=(&quot;generation&quot;, &quot;max&quot;),
+        cloud_cover=(&quot;cloud_cover&quot;, &quot;min&quot;),
+        aoi_coverage=(&quot;aoi_coverage&quot;, &quot;max&quot;),
+    )
+    return g.add_suffix(f&quot;_{suffix}&quot;)
+
+
+def reconcile(gee: pd.DataFrame, mpc: pd.DataFrame) -&gt; pd.DataFrame:
+    gee = gee.assign(key=acquisition_key(gee))
+    mpc = mpc.assign(key=acquisition_key(mpc))
+    t = group(gee, &quot;gee&quot;, &quot;asset_id&quot;).join(group(mpc, &quot;mpc&quot;, &quot;item_id&quot;), how=&quot;outer&quot;)
+    t = t.reset_index()
+
+    in_gee = t[&quot;ids_gee&quot;].notna() &amp; (t[&quot;ids_gee&quot;] != &quot;&quot;)
+    in_mpc = t[&quot;ids_mpc&quot;].notna() &amp; (t[&quot;ids_mpc&quot;] != &quot;&quot;)
+    t[&quot;state&quot;] = &quot;BOTH&quot;
+    t.loc[in_gee &amp; ~in_mpc, &quot;state&quot;] = &quot;GEE_ONLY&quot;
+    t.loc[~in_gee &amp; in_mpc, &quot;state&quot;] = &quot;MPC_ONLY&quot;
+
+    def identity(row):
+        if row[&quot;state&quot;] != &quot;BOTH&quot;:
+            return None
+        a = set(str(row[&quot;products_gee&quot;]).split(&quot;|&quot;))
+        b = set(str(row[&quot;products_mpc&quot;]).split(&quot;|&quot;))
+        return &quot;E1&quot; if a &amp; b else &quot;E2&quot;
+
+    t[&quot;identity&quot;] = t.apply(identity, axis=1)
+    t[&quot;multiple_generations&quot;] = (t[&quot;n_products_gee&quot;].fillna(0) &gt; 1) | (t[&quot;n_products_mpc&quot;].fillna(0) &gt; 1)
+    t[&quot;sensing_utc&quot;] = t[&quot;sensing_utc_gee&quot;].fillna(t[&quot;sensing_utc_mpc&quot;])
+    t[&quot;platform&quot;] = t[&quot;platform_gee&quot;].fillna(t[&quot;platform_mpc&quot;])
+    t[&quot;tile&quot;] = t[&quot;tile_gee&quot;].fillna(t[&quot;tile_mpc&quot;])
+    t[&quot;month&quot;] = t[&quot;sensing_utc&quot;].dt.strftime(&quot;%Y-%m&quot;)
+    t[&quot;year&quot;] = t[&quot;sensing_utc&quot;].dt.year
+    t[&quot;aoi_coverage&quot;] = t[[&quot;aoi_coverage_gee&quot;, &quot;aoi_coverage_mpc&quot;]].max(axis=1)
+    cols = [&quot;key&quot;, &quot;sensing_utc&quot;, &quot;month&quot;, &quot;year&quot;, &quot;platform&quot;, &quot;tile&quot;, &quot;state&quot;, &quot;identity&quot;,
+            &quot;multiple_generations&quot;, &quot;aoi_coverage&quot;,
+            &quot;ids_gee&quot;, &quot;ids_mpc&quot;, &quot;products_gee&quot;, &quot;products_mpc&quot;,
+            &quot;baseline_gee&quot;, &quot;baseline_mpc&quot;, &quot;generation_gee&quot;, &quot;generation_mpc&quot;,
+            &quot;cloud_cover_gee&quot;, &quot;cloud_cover_mpc&quot;]
+    return t[cols].sort_values([&quot;sensing_utc&quot;, &quot;tile&quot;], ignore_index=True)
+
+
+def summarise(t: pd.DataFrame, by: str) -&gt; pd.DataFrame:
+    r = t.pivot_table(index=by, columns=&quot;state&quot;, values=&quot;key&quot;, aggfunc=&quot;count&quot;, fill_value=0)
+    for c in (&quot;BOTH&quot;, &quot;GEE_ONLY&quot;, &quot;MPC_ONLY&quot;):
+        if c not in r:
+            r[c] = 0
+    r = r[[&quot;BOTH&quot;, &quot;GEE_ONLY&quot;, &quot;MPC_ONLY&quot;]]
+    r[&quot;total&quot;] = r.sum(axis=1)
+    r[&quot;fraction_single_catalogue&quot;] = (r[&quot;GEE_ONLY&quot;] + r[&quot;MPC_ONLY&quot;]) / r[&quot;total&quot;]
+    e2 = t[t[&quot;identity&quot;] == &quot;E2&quot;].groupby(by)[&quot;key&quot;].count()
+    r[&quot;E2&quot;] = e2.reindex(r.index).fillna(0).astype(int)
+    return r.reset_index()
+
+
+# ----------------------------------------------------------------------- main
+
+def main() -&gt; None:
+    ap = argparse.ArgumentParser(description=__doc__.split(&quot;\n\n&quot;)[0])
+    ap.add_argument(&quot;--aoi&quot;, type=Path, required=True, help=&quot;AOI as GeoJSON, shapefile or GPKG.&quot;)
+    ap.add_argument(&quot;--start&quot;, type=date.fromisoformat, required=True, help=&quot;YYYY-MM-DD&quot;)
+    ap.add_argument(&quot;--end&quot;, type=date.fromisoformat, required=True, help=&quot;YYYY-MM-DD (inclusive)&quot;)
+    ap.add_argument(&quot;--gee-project&quot;, required=True, help=&quot;Google Cloud project for Earth Engine.&quot;)
+    ap.add_argument(&quot;--min-coverage&quot;, type=float, default=0.0,
+                    help=&quot;Ignore acquisitions covering less than this fraction of the AOI (0–1). &quot;
+                         &quot;Default 0: everything is reported.&quot;)
+    ap.add_argument(&quot;--out&quot;, type=Path, default=Path(&quot;reconciliation&quot;))
+    a = ap.parse_args()
+    if a.end &lt; a.start:
+        sys.exit(&quot;--end must not be earlier than --start.&quot;)
+    a.out.mkdir(parents=True, exist_ok=True)
+
+    ee.Initialize(project=a.gee_project)
+    aoi = read_aoi(a.aoi)
+
+    print(f&quot;Listing GEE ({GEE_COLLECTION}) ...&quot;)
+    gee = list_gee(aoi_to_ee(aoi), a.start, a.end)
+    print(f&quot;  {len(gee)} images&quot;)
+    print(f&quot;Listing MPC ({MPC_COLLECTION}) ...&quot;)
+    mpc = list_mpc(aoi, a.start, a.end)
+    print(f&quot;  {len(mpc)} items&quot;)
+    if gee.empty and mpc.empty:
+        sys.exit(&quot;Neither catalogue returned scenes for that AOI and period.&quot;)
+
+    gee.to_csv(a.out / &quot;scenes_gee.csv&quot;, index=False)
+    mpc.to_csv(a.out / &quot;scenes_mpc.csv&quot;, index=False)
+
+    t = reconcile(gee, mpc)
+    t = t[t[&quot;aoi_coverage&quot;].fillna(0) &gt;= a.min_coverage]
+    t.to_csv(a.out / &quot;scene_reconciliation.csv&quot;, index=False)
+    summarise(t, &quot;month&quot;).to_csv(a.out / &quot;summary_by_month.csv&quot;, index=False)
+    summarise(t, &quot;year&quot;).to_csv(a.out / &quot;summary_by_year.csv&quot;, index=False)
+    summarise(t, &quot;platform&quot;).to_csv(a.out / &quot;summary_by_platform.csv&quot;, index=False)
+    summarise(t, &quot;tile&quot;).to_csv(a.out / &quot;summary_by_tile.csv&quot;, index=False)
+
+    counts = t[&quot;state&quot;].value_counts().to_dict()
+    both = t[t[&quot;state&quot;] == &quot;BOTH&quot;]
+    summary = {
+        &quot;created_utc&quot;: datetime.now(timezone.utc).isoformat(),
+        &quot;aoi&quot;: str(a.aoi), &quot;start&quot;: a.start.isoformat(), &quot;end&quot;: a.end.isoformat(),
+        &quot;gee_collection&quot;: GEE_COLLECTION, &quot;mpc_collection&quot;: MPC_COLLECTION,
+        &quot;matching_key&quot;: &quot;datatake without baseline suffix + MGRS tile&quot;,
+        &quot;min_aoi_coverage&quot;: a.min_coverage,
+        &quot;acquisitions&quot;: int(len(t)), &quot;by_state&quot;: {k: int(v) for k, v in counts.items()},
+        &quot;fraction_single_catalogue&quot;: float((t[&quot;state&quot;] != &quot;BOTH&quot;).mean()),
+        &quot;E1&quot;: int((both[&quot;identity&quot;] == &quot;E1&quot;).sum()),
+        &quot;E2&quot;: int((both[&quot;identity&quot;] == &quot;E2&quot;).sum()),
+        &quot;fraction_E2_of_BOTH&quot;: float((both[&quot;identity&quot;] == &quot;E2&quot;).mean()) if len(both) else None,
+        &quot;versions&quot;: {&quot;earthengine-api&quot;: ee.__version__, &quot;pandas&quot;: pd.__version__,
+                     &quot;shapely&quot;: shapely.__version__},
+    }
+    (a.out / &quot;summary.json&quot;).write_text(json.dumps(summary, indent=2, ensure_ascii=False) + &quot;\n&quot;,
+                                        encoding=&quot;utf-8&quot;)
+
+    print(&quot;-&quot; * 90)
+    print(f&quot;Acquisitions: {len(t)} | &quot; + &quot; | &quot;.join(f&quot;{k}={v}&quot; for k, v in counts.items()))
+    print(f&quot;In a single catalogue: {summary[&#x27;fraction_single_catalogue&#x27;]:.1%} | &quot;
+          f&quot;E2 of BOTH: {summary[&#x27;E2&#x27;]}/{len(both)}&quot;)
+    single = t[t[&quot;state&quot;] != &quot;BOTH&quot;]
+    for f in single.head(30).itertuples(index=False):
+        print(f&quot;  {f.state:9s} {f.sensing_utc:%Y-%m-%d %H:%M:%S} {f.platform} T{f.tile} &quot;
+              f&quot;coverage={f.aoi_coverage:.2f}&quot;)
+    if len(single) &gt; 30:
+        print(f&quot;  ... and {len(single) - 30} more in scene_reconciliation.csv&quot;)
+    print(f&quot;Outputs in: {a.out.resolve()}&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</pre>
+</details>
+<details>
+  <summary>e2_frequency.py · 242 líneas</summary>
+  <div class="codebar"><span class="muted">Python 3.12 · código y comentarios en inglés</span><button class="copy" type="button" data-target="code-b">Copiar código</button></div>
+  <pre class="code" id="code-b">#!/usr/bin/env python3
+# Part of gee-mpc-sentinel2-validation v1.0.0
+# Author: Heiber Alexander Pantevez Villamil (hapantevezv@unal.edu.co, ORCID 0000-0003-1797-0057), Universidad Nacional de Colombia
+# Licence: MIT (see LICENSE)
+&quot;&quot;&quot;
+e2_frequency.py
+===============
+
+Estimates how often GEE and MPC serve different L2A generations of the same
+Sentinel-2 acquisition (E2 cases), where they concentrate and, optionally, how
+much the cloud mask (SCL) changes between the two generations.
+
+Why it exists
+-------------
+Pairing scenes by date or datatake does not guarantee that both catalogues
+hold the same product. ESA reprocesses acquisitions (new baselines,
+Collection-1) and each catalogue may keep a different generation. In the pilot
+case, one of 11 acquisitions was E2 and the two generations disagreed on the
+validity of hundreds of farm pixels; all the disagreement came from the SCL,
+not from the masks of the spectral bands.
+
+Input
+-----
+scene_reconciliation.csv written by reconcile_catalogues.py.
+
+What it does
+------------
+1. Metadata only (always): among BOTH acquisitions, computes the E2 share and
+   stratifies it by month, year, platform, tile, baseline pair and difference type:
+     SAME_BASELINE_OTHER_GENERATION  (reprocessed with the same baseline)
+     DIFFERENT_BASELINE              (e.g. 04.00 versus 05.00)
+2. With --measure-scl (optional): for each E2 pair, downloads the SCL from both
+   catalogues on the native 20 m grid (no resampling) over the AOI and
+   measures class agreement and validity Jaccard.
+
+Usage
+-----
+    python e2_frequency.py --reconciliation reconciliation/scene_reconciliation.csv \\
+        --out e2
+
+    python e2_frequency.py --reconciliation reconciliation/scene_reconciliation.csv \\
+        --measure-scl --aoi aoi.geojson --gee-project MY_PROJECT --out e2
+
+Outputs (in --out)
+------------------
+    e2_pairs.csv                 detail of each E2 record
+    e2_by_&lt;stratum&gt;.csv          shares by month, year, platform, tile,
+                                 baseline pair and difference type
+    e2_scl.csv                   (with --measure-scl) SCL agreement per pair
+    e2_summary.json
+&quot;&quot;&quot;
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+import sys
+import tempfile
+
+import numpy as np
+import pandas as pd
+
+VALID_SCL_DEFAULT = &quot;2,4,5,6,7&quot;
+
+
+# ------------------------------------------------------- part 1: metadata
+
+def prepare(path: Path) -&gt; pd.DataFrame:
+    t = pd.read_csv(path)
+    for col in (&quot;sensing_utc&quot;, &quot;generation_gee&quot;, &quot;generation_mpc&quot;):
+        # Formats differ by catalogue (ms, ISO with or without fraction): normalised to UTC.
+        t[col] = pd.to_datetime(t[col], utc=True, errors=&quot;coerce&quot;, format=&quot;mixed&quot;)
+    both = t[t[&quot;state&quot;] == &quot;BOTH&quot;].copy()
+    if both.empty:
+        sys.exit(&quot;No acquisition is present in both catalogues: E2 cannot be estimated.&quot;)
+    both[&quot;is_e2&quot;] = both[&quot;identity&quot;] == &quot;E2&quot;
+    both[&quot;baseline_pair&quot;] = (both[&quot;baseline_gee&quot;].map(lambda v: f&quot;{v:05.2f}&quot; if pd.notna(v) else &quot;?&quot;)
+                             + &quot; → &quot; +
+                             both[&quot;baseline_mpc&quot;].map(lambda v: f&quot;{v:05.2f}&quot; if pd.notna(v) else &quot;?&quot;))
+    both[&quot;difference_type&quot;] = np.where(
+        ~both[&quot;is_e2&quot;], &quot;IDENTICAL&quot;,
+        np.where(both[&quot;baseline_gee&quot;] == both[&quot;baseline_mpc&quot;],
+                 &quot;SAME_BASELINE_OTHER_GENERATION&quot;, &quot;DIFFERENT_BASELINE&quot;))
+    both[&quot;generation_lag_h&quot;] = (
+        (both[&quot;generation_mpc&quot;] - both[&quot;generation_gee&quot;]).dt.total_seconds() / 3600)
+    return both
+
+
+def stratify(both: pd.DataFrame, by: str) -&gt; pd.DataFrame:
+    g = both.groupby(by).agg(acquisitions=(&quot;key&quot;, &quot;count&quot;), e2=(&quot;is_e2&quot;, &quot;sum&quot;))
+    g[&quot;fraction_e2&quot;] = g[&quot;e2&quot;] / g[&quot;acquisitions&quot;]
+    return g.reset_index().sort_values(by)
+
+
+# --------------------------------------------------- part 2: SCL per pair
+
+def measure_scl(pairs: pd.DataFrame, aoi_path: Path, gee_project: str,
+                valid: set[int], limit: int | None) -&gt; pd.DataFrame:
+    &quot;&quot;&quot;Compares the SCL of both generations on the native 20 m grid of the MPC item.&quot;&quot;&quot;
+    import ee
+    import geopandas as gpd
+    import planetary_computer
+    from pystac_client import Client
+    import rasterio
+    from rasterio.features import geometry_mask
+    from rasterio.windows import Window
+    import requests
+    from shapely.geometry import mapping
+
+    ee.Initialize(project=gee_project)
+    client = Client.open(&quot;https://planetarycomputer.microsoft.com/api/stac/v1&quot;)
+    aoi = gpd.read_file(aoi_path)
+    rows = []
+    selection = pairs if limit is None else pairs.head(limit)
+    for i, pair in enumerate(selection.itertuples(index=False), start=1):
+        asset = str(pair.ids_gee).split(&quot;|&quot;)[0]
+        item_id = str(pair.ids_mpc).split(&quot;|&quot;)[0]
+        item = next(client.search(collections=[&quot;sentinel-2-l2a&quot;], ids=[item_id]).items())
+        href = planetary_computer.sign(item).assets[&quot;SCL&quot;].href
+        with rasterio.open(href) as src:
+            geom = aoi.to_crs(src.crs).geometry.union_all()
+            minx, miny, maxx, maxy = geom.buffer(40).bounds
+            T = src.transform
+            col0 = int(np.floor((minx - T.c) / T.a))
+            col1 = int(np.ceil((maxx - T.c) / T.a))
+            row0 = int(np.floor((T.f - maxy) / -T.e))
+            row1 = int(np.ceil((T.f - miny) / -T.e))
+            window = Window(col0, row0, col1 - col0, row1 - row0)
+            scl_mpc = src.read(1, window=window)
+            transform = src.window_transform(window)
+            epsg = src.crs.to_epsg()
+            crs_ee = f&quot;EPSG:{epsg}&quot; if epsg else src.crs.to_wkt()
+        height, width = scl_mpc.shape
+        inside = geometry_mask([mapping(geom)], out_shape=(height, width),
+                               transform=transform, invert=True)
+
+        # GEE SCL on the same native 20 m lattice (no resampling). A region with a
+        # 2-pixel margin is requested and the exact window is then cropped locally,
+        # because GEE may shift the edge of the requested region by one or two pixels.
+        margin = 40
+        region = ee.Geometry.Rectangle(
+            [transform.c - margin, transform.f - 20 * height - margin,
+             transform.c + 20 * width + margin, transform.f + margin],
+            proj=ee.Projection(crs_ee), geodesic=False)
+        url = ee.Image(asset).select(&quot;SCL&quot;).unmask(0).toUint8().getDownloadURL({
+            &quot;region&quot;: region, &quot;crs&quot;: crs_ee,
+            &quot;crs_transform&quot;: [20, 0, transform.c, 0, -20, transform.f], &quot;format&quot;: &quot;GEO_TIFF&quot;})
+        with tempfile.NamedTemporaryFile(suffix=&quot;.tif&quot;) as tmp:
+            r = requests.get(url, timeout=300)
+            r.raise_for_status()
+            tmp.write(r.content)
+            tmp.flush()
+            with rasterio.open(tmp.name) as g:
+                gt = g.transform
+                dc, dr = (transform.c - gt.c) / 20, (gt.f - transform.f) / 20
+                same_lattice = (abs(gt.a - 20) &lt; 1e-6 and abs(gt.e + 20) &lt; 1e-6
+                                and abs(dc - round(dc)) &lt; 1e-6 and abs(dr - round(dr)) &lt; 1e-6)
+                c0, r0 = int(round(dc)), int(round(dr))
+                if not same_lattice or c0 &lt; 0 or r0 &lt; 0 or c0 + width &gt; g.width or r0 + height &gt; g.height:
+                    raise RuntimeError(
+                        f&quot;{asset}: the GEE download is not on the native MPC lattice.\n&quot;
+                        f&quot;  MPC: {tuple(transform)[:6]} {width}x{height}\n&quot;
+                        f&quot;  GEE: {tuple(gt)[:6]} {g.width}x{g.height}&quot;)
+                scl_gee = g.read(1)[r0:r0 + height, c0:c0 + width]
+
+        a, b = scl_gee[inside], scl_mpc[inside]
+        va, vb = np.isin(a, list(valid)), np.isin(b, list(valid))
+        union = np.count_nonzero(va | vb)
+        changes = pd.Series(list(zip(a[a != b], b[a != b]))).value_counts().head(3)
+        rows.append({
+            &quot;key&quot;: pair.key, &quot;sensing_utc&quot;: pair.sensing_utc, &quot;tile&quot;: pair.tile,
+            &quot;gee_asset&quot;: asset, &quot;mpc_item&quot;: item_id,
+            &quot;aoi_pixels_20m&quot;: int(inside.sum()),
+            &quot;scl_class_agreement&quot;: float((a == b).mean()),
+            &quot;valid_gee&quot;: int(va.sum()), &quot;valid_mpc&quot;: int(vb.sum()),
+            &quot;valid_only_gee&quot;: int((va &amp; ~vb).sum()), &quot;valid_only_mpc&quot;: int((~va &amp; vb).sum()),
+            &quot;validity_jaccard&quot;: float(np.count_nonzero(va &amp; vb) / union) if union else None,
+            &quot;frequent_scl_transitions_gee_to_mpc&quot;: &quot;; &quot;.join(f&quot;{x}-&gt;{y}:{n}&quot; for (x, y), n in changes.items()),
+        })
+        print(f&quot;  [{i}/{len(selection)}] {pair.key} | SCL agreement={rows[-1][&#x27;scl_class_agreement&#x27;]:.3f} | &quot;
+              f&quot;validity Jaccard={rows[-1][&#x27;validity_jaccard&#x27;]}&quot;)
+    return pd.DataFrame(rows)
+
+
+# ----------------------------------------------------------------------- main
+
+def main() -&gt; None:
+    ap = argparse.ArgumentParser(description=&quot;Frequency and effect of different L2A generations (E2).&quot;)
+    ap.add_argument(&quot;--reconciliation&quot;, type=Path, required=True)
+    ap.add_argument(&quot;--out&quot;, type=Path, default=Path(&quot;e2&quot;))
+    ap.add_argument(&quot;--measure-scl&quot;, action=&quot;store_true&quot;, help=&quot;Compare the SCL of each E2 pair (downloads).&quot;)
+    ap.add_argument(&quot;--aoi&quot;, type=Path, help=&quot;Required with --measure-scl.&quot;)
+    ap.add_argument(&quot;--gee-project&quot;, help=&quot;Required with --measure-scl.&quot;)
+    ap.add_argument(&quot;--valid-scl&quot;, default=VALID_SCL_DEFAULT,
+                    help=f&quot;Valid SCL classes, comma-separated (default {VALID_SCL_DEFAULT}).&quot;)
+    ap.add_argument(&quot;--max-pairs&quot;, type=int, help=&quot;Limit how many E2 pairs are measured.&quot;)
+    a = ap.parse_args()
+    if a.measure_scl and not (a.aoi and a.gee_project):
+        sys.exit(&quot;--measure-scl requires --aoi and --gee-project.&quot;)
+    a.out.mkdir(parents=True, exist_ok=True)
+
+    both = prepare(a.reconciliation)
+    pairs = both[both[&quot;is_e2&quot;]].copy()
+    pairs.to_csv(a.out / &quot;e2_pairs.csv&quot;, index=False)
+    for stratum in (&quot;month&quot;, &quot;year&quot;, &quot;platform&quot;, &quot;tile&quot;, &quot;baseline_pair&quot;, &quot;difference_type&quot;):
+        stratify(both, stratum).to_csv(a.out / f&quot;e2_by_{stratum}.csv&quot;, index=False)
+
+    summary = {
+        &quot;created_utc&quot;: datetime.now(timezone.utc).isoformat(),
+        &quot;reconciliation&quot;: str(a.reconciliation),
+        &quot;acquisitions_in_both&quot;: int(len(both)),
+        &quot;e2&quot;: int(len(pairs)),
+        &quot;fraction_e2&quot;: float(len(pairs) / len(both)),
+        &quot;e2_by_type&quot;: pairs[&quot;difference_type&quot;].value_counts().to_dict(),
+        &quot;median_generation_lag_h&quot;: (float(pairs[&quot;generation_lag_h&quot;].median())
+                                    if len(pairs) else None),
+    }
+    print(f&quot;BOTH={len(both)} | E2={len(pairs)} ({summary[&#x27;fraction_e2&#x27;]:.1%})&quot;)
+    for kind, n in summary[&quot;e2_by_type&quot;].items():
+        print(f&quot;  {kind}: {n}&quot;)
+
+    if a.measure_scl and len(pairs):
+        valid = {int(v) for v in a.valid_scl.split(&quot;,&quot;)}
+        print(f&quot;Measuring SCL in {len(pairs) if a.max_pairs is None else min(a.max_pairs, len(pairs))} E2 pairs ...&quot;)
+        scl = measure_scl(pairs, a.aoi, a.gee_project, valid, a.max_pairs)
+        scl.to_csv(a.out / &quot;e2_scl.csv&quot;, index=False)
+        summary[&quot;scl&quot;] = {
+            &quot;pairs_measured&quot;: int(len(scl)),
+            &quot;median_scl_class_agreement&quot;: float(scl[&quot;scl_class_agreement&quot;].median()),
+            &quot;median_validity_jaccard&quot;: float(scl[&quot;validity_jaccard&quot;].median()),
+            &quot;valid_scl_classes&quot;: sorted(valid),
+        }
+
+    (a.out / &quot;e2_summary.json&quot;).write_text(json.dumps(summary, indent=2, ensure_ascii=False,
+                                                      default=str) + &quot;\n&quot;, encoding=&quot;utf-8&quot;)
+    print(f&quot;Outputs in: {a.out.resolve()}&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</pre>
+</details>
+<details>
+  <summary>composite_impact.py · 431 líneas</summary>
+  <div class="codebar"><span class="muted">Python 3.12 · código y comentarios en inglés</span><button class="copy" type="button" data-target="code-c">Copiar código</button></div>
+  <pre class="code" id="code-c">#!/usr/bin/env python3
+# Part of gee-mpc-sentinel2-validation v1.0.0
+# Author: Heiber Alexander Pantevez Villamil (hapantevezv@unal.edu.co, ORCID 0000-0003-1797-0057), Universidad Nacional de Colombia
+# Licence: MIT (see LICENSE)
+&quot;&quot;&quot;
+composite_impact.py
+===================
+
+Measures how much the monthly medians and annual composites of NDVI, EVI and
+NDWI change when the scene universe is GEE&#x27;s, MPC&#x27;s or the one common to both.
+Everything is computed with a single local engine, so that the only
+difference between results is which scenes enter.
+
+Why it exists
+-------------
+The pilot case showed that, with the same scenes, GEE and MPC produce the
+same indices pixel by pixel (equivalent product, processing chain and median).
+The difference appeared when the GEE product included scenes that MPC did not
+hold. This script quantifies that effect for any AOI and period, before
+deciding how to combine the platforms.
+
+Design
+------
+* Scene universes, from scene_reconciliation.csv:
+      COMMON = BOTH acquisitions
+      GEE    = BOTH + GEE_ONLY
+      MPC    = BOTH + MPC_ONLY
+* Each scene is read from the catalogue where it exists; BOTH scenes from
+  --common-source. This is valid because, for the same product, GEE and MPC
+  deliver equivalent values after harmonisation (verified in the pilot). If a
+  BOTH acquisition is E2, the --common-source generation is used and this is
+  reported in scenes_used.csv.
+* Explicit radiometry: reflectance = max(DN + BOA_ADD_OFFSET, 0) / 10000.
+  In GEE (S2_SR_HARMONIZED) the offset is already applied; in MPC it is read
+  from the product XML (baseline &gt;= 04.00).
+* Fixed grid (--crs, --resolution) aligned to multiples of the resolution,
+  nearest neighbour, AOI membership by pixel centre.
+* Joint validity: SCL in --valid-scl and native data in B02, B03, B04, B08.
+  GEE validity is downloaded as its own band: a harmonised DN = 0 is a real
+  value and is never used as a &quot;no data&quot; flag.
+* 3x3 mean of reflectance over valid neighbours before the indices
+  (disable with --no-3x3). Per-pixel monthly median. Annual composite as a
+  multivariate medoid of the months (--min-months, --min-quarters).
+* Every output GeoTIFF carries an OBS_COUNT band and a JSON with the list of
+  scenes that produced it (provenance inside the product).
+
+Usage
+-----
+    python composite_impact.py --reconciliation reconciliation/scene_reconciliation.csv \\
+        --aoi aoi.geojson --gee-project MY_PROJECT --out impact
+
+Useful options: --crs EPSG:9377 (default: UTM zone of the AOI), --months 2024-12,2025-01,
+--common-source gee, --only-months-with-difference (process only months with scenes
+in a single catalogue), --max-cloud 20.
+
+Outputs (in --out)
+------------------
+    scenes_used.csv              scene, catalogue read, universes it belongs to
+    monthly_metrics.csv          differences between universes by month and index
+    annual_metrics.csv           the same for annual composites (if enough months)
+    monthly/&lt;YYYY-MM&gt;_&lt;UNIVERSE&gt;.tif (+ .json)   NDVI, EVI, NDWI, OBS_COUNT
+    summary.json
+    cache/                       downloaded scenes (reused)
+&quot;&quot;&quot;
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import math
+from pathlib import Path
+import sys
+import warnings
+import xml.etree.ElementTree as ET
+
+import ee
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import planetary_computer
+from pyproj import CRS
+from pystac_client import Client
+import rasterio
+from rasterio.enums import Resampling
+from rasterio.features import geometry_mask
+from rasterio.transform import Affine
+from rasterio.vrt import WarpedVRT
+import requests
+import shapely
+from shapely.geometry import mapping
+
+MPC_STAC = &quot;https://planetarycomputer.microsoft.com/api/stac/v1&quot;
+MPC_BANDS = (&quot;B02&quot;, &quot;B03&quot;, &quot;B04&quot;, &quot;B08&quot;)
+GEE_BANDS = (&quot;B2&quot;, &quot;B3&quot;, &quot;B4&quot;, &quot;B8&quot;)
+INDICES = (&quot;NDVI&quot;, &quot;EVI&quot;, &quot;NDWI&quot;)
+NODATA = -9999.0
+MEDOID_SCALES = np.array([1.2, 1.2, 2.0])   # scale of NDVI, EVI, NDWI
+BAND_ID = {&quot;B02&quot;: 1, &quot;B03&quot;: 2, &quot;B04&quot;: 3, &quot;B08&quot;: 7}  # band_id in the product XML
+
+
+# ----------------------------------------------------------------------- grid
+
+def auto_utm_crs(geom_4326: shapely.Geometry) -&gt; str:
+    c = geom_4326.centroid
+    zone = int((c.x + 180) // 6) + 1
+    return f&quot;EPSG:{(32600 if c.y &gt;= 0 else 32700) + zone}&quot;
+
+
+def build_grid(aoi_path: Path, crs: str, res: float):
+    gdf = gpd.read_file(aoi_path)
+    geom4326 = shapely.force_2d(gdf.to_crs(4326).geometry.union_all())
+    if crs == &quot;auto&quot;:
+        crs = auto_utm_crs(geom4326)
+    geom = shapely.force_2d(gdf.to_crs(crs).geometry.union_all())
+    minx, miny, maxx, maxy = geom.bounds
+    # Aligned to multiples of the resolution, with a one-pixel halo for the 3x3.
+    left = math.floor(minx / res) * res - res
+    top = math.ceil(maxy / res) * res + res
+    right = math.ceil(maxx / res) * res + res
+    bottom = math.floor(miny / res) * res - res
+    width, height = int(round((right - left) / res)), int(round((top - bottom) / res))
+    transform = Affine(res, 0, left, 0, -res, top)
+    inside = geometry_mask([mapping(geom)], out_shape=(height, width), transform=transform, invert=True)
+    return crs, transform, width, height, inside
+
+
+# ------------------------------------------------------------- scene reading
+
+def read_gee(asset: str, crs: str, transform: Affine, width: int, height: int, cache: Path):
+    &quot;&quot;&quot;Downloads B2, B3, B4, B8, SCL and the native spectral mask on the exact grid.&quot;&quot;&quot;
+    target = cache / (asset.replace(&quot;/&quot;, &quot;__&quot;) + &quot;.tif&quot;)
+    if not target.exists():
+        wkt = CRS.from_user_input(crs).to_wkt(version=&quot;WKT1_GDAL&quot;)
+        img = ee.Image(asset)
+        spectral = img.select(list(GEE_BANDS))
+        mask = spectral.mask().reduce(ee.Reducer.min()).gt(0).rename(&quot;MASK&quot;)
+        out = spectral.addBands(img.select(&quot;SCL&quot;)).unmask(0).addBands(mask.unmask(0)).toUint16()
+        res = transform.a
+        region = ee.Geometry.Rectangle(
+            [transform.c, transform.f - res * height, transform.c + res * width, transform.f],
+            proj=ee.Projection(wkt), geodesic=False)
+        url = out.getDownloadURL({&quot;region&quot;: region, &quot;crs&quot;: wkt, &quot;format&quot;: &quot;GEO_TIFF&quot;,
+                                  &quot;crs_transform&quot;: [res, 0, transform.c, 0, -res, transform.f]})
+        r = requests.get(url, timeout=600)
+        r.raise_for_status()
+        tmp = target.with_suffix(&quot;.tmp&quot;)
+        tmp.write_bytes(r.content)
+        tmp.replace(target)
+    with rasterio.open(target) as src:
+        if (src.width, src.height) != (width, height) or not src.transform.almost_equals(transform):
+            raise RuntimeError(f&quot;{asset}: the downloaded grid does not match the working grid.&quot;)
+        data = src.read()
+    dn = data[:4].astype(np.float64)                  # already harmonised by GEE
+    spectral_valid = data[5] &gt; 0
+    return dn / 10000.0, spectral_valid, data[4]
+
+
+def mpc_radiometry(item) -&gt; dict:
+    &quot;&quot;&quot;BOA offsets from the product XML (baseline &gt;= 04.00); 0 before.&quot;&quot;&quot;
+    pb = float(str(item.properties.get(&quot;s2:processing_baseline&quot;, &quot;0&quot;)).replace(&quot;N&quot;, &quot;&quot;))
+    if pb &lt; 4.0:
+        return {&quot;baseline&quot;: pb, &quot;qv&quot;: 10000.0, &quot;offsets&quot;: {b: 0.0 for b in MPC_BANDS}}
+    signed = planetary_computer.sign(item.clone())
+    href = signed.assets[&quot;product-metadata&quot;].href
+    root = ET.fromstring(requests.get(href, timeout=120).content)
+    qv, by_id, without_id = None, {}, []
+    for el in root.iter():
+        name, text = el.tag.rsplit(&quot;}&quot;, 1)[-1], (el.text or &quot;&quot;).strip()
+        if not text:
+            continue
+        if name == &quot;BOA_QUANTIFICATION_VALUE&quot;:
+            qv = float(text)
+        elif name == &quot;BOA_ADD_OFFSET&quot;:
+            bid = el.attrib.get(&quot;band_id&quot;) or el.attrib.get(&quot;bandId&quot;)
+            if bid is not None:
+                by_id[int(bid)] = float(text)
+            else:
+                without_id.append(float(text))
+    offsets = {b: by_id.get(BAND_ID[b], without_id[0] if without_id else None) for b in MPC_BANDS}
+    if qv is None or any(v is None for v in offsets.values()):
+        raise RuntimeError(f&quot;{item.id}: the radiometry could not be read from the XML.&quot;)
+    return {&quot;baseline&quot;: pb, &quot;qv&quot;: qv, &quot;offsets&quot;: offsets}
+
+
+def read_mpc(item_id: str, crs: str, transform: Affine, width: int, height: int,
+             client: Client, cache: Path):
+    target = cache / f&quot;{item_id}.npz&quot;
+    if target.exists():
+        z = np.load(target)
+        return z[&quot;reflectance&quot;], z[&quot;valid&quot;], z[&quot;scl&quot;]
+    item = next(client.search(collections=[&quot;sentinel-2-l2a&quot;], ids=[item_id]).items())
+    rad = mpc_radiometry(item)
+    signed = planetary_computer.sign(item.clone())
+
+    def read(band):
+        with rasterio.open(signed.assets[band].href) as src:
+            with WarpedVRT(src, crs=crs, transform=transform, width=width, height=height,
+                           resampling=Resampling.nearest, src_nodata=src.nodata, nodata=0) as vrt:
+                arr = vrt.read(1, masked=True)
+        values = np.asarray(arr.filled(0))
+        return values, (~np.ma.getmaskarray(arr)) &amp; (values != 0)   # in MPC, DN 0 = no data
+
+    refl, valids = [], []
+    for b in MPC_BANDS:
+        dn, v = read(b)
+        refl.append(np.maximum(dn.astype(np.float64) + rad[&quot;offsets&quot;][b], 0.0) / rad[&quot;qv&quot;])
+        valids.append(v)
+    scl, _ = read(&quot;SCL&quot;)
+    reflectance, valid = np.stack(refl), np.logical_and.reduce(valids)
+    np.savez_compressed(target, reflectance=reflectance, valid=valid, scl=scl)
+    return reflectance, valid, scl
+
+
+# ----------------------------------------------------------- processing chain
+
+def sum_3x3(a: np.ndarray) -&gt; np.ndarray:
+    p = np.pad(a, 1)
+    return sum(p[i:i + a.shape[0], j:j + a.shape[1]] for i in range(3) for j in range(3))
+
+
+def scene_indices(reflectance, spectral_valid, scl, valid_classes, use_3x3: bool):
+    valid = spectral_valid &amp; np.isin(scl, list(valid_classes))
+    if use_3x3:
+        n = sum_3x3(valid.astype(np.float64))
+        r = [sum_3x3(np.where(valid, b, 0.0)) / np.maximum(n, 1.0) for b in reflectance]
+    else:
+        r = list(reflectance)
+    blue, green, red, nir = r
+    with np.errstate(divide=&quot;ignore&quot;, invalid=&quot;ignore&quot;):
+        out = {&quot;NDVI&quot;: (nir - red) / (nir + red),
+               &quot;EVI&quot;: 2.5 * (nir - red) / (nir + 6 * red - 7.5 * blue + 1),
+               &quot;NDWI&quot;: (green - nir) / (green + nir)}
+    for k in out:
+        out[k] = np.where(valid &amp; np.isfinite(out[k]), out[k], np.nan)
+    return out
+
+
+def median(stack: list[np.ndarray]) -&gt; tuple[np.ndarray, np.ndarray]:
+    s = np.stack(stack)
+    with warnings.catch_warnings():
+        warnings.simplefilter(&quot;ignore&quot;, category=RuntimeWarning)
+        return np.nanmedian(s, axis=0), np.isfinite(s).sum(axis=0)
+
+
+def medoid(months: list[str], layers: list[np.ndarray], min_months: int, min_quarters: int):
+    v = np.stack(layers)                              # (t, 3, h, w)
+    ok = np.all(np.isfinite(v), axis=1)
+    quarters = np.zeros(ok.shape[1:], dtype=int)
+    for q in range(4):
+        idx = [i for i, m in enumerate(months) if (int(m[5:7]) - 1) // 3 == q]
+        if idx:
+            quarters += np.any(ok[idx], axis=0)
+    eligible = (ok.sum(axis=0) &gt;= min_months) &amp; (quarters &gt;= min_quarters)
+    scaled = v / MEDOID_SCALES[None, :, None, None]
+    score = np.full(ok.shape, np.inf)
+    for t in range(len(months)):
+        total = np.zeros(ok.shape[1:])
+        for u in range(len(months)):
+            both = ok[t] &amp; ok[u]
+            d = np.sqrt(np.nansum((scaled[t] - scaled[u]) ** 2, axis=0))
+            total[both] += d[both]
+        score[t, ok[t]] = total[ok[t]]
+    sel = np.argmin(score, axis=0)
+    rows, cols = np.indices(sel.shape)
+    annual = v[sel, :, rows, cols].transpose(2, 0, 1)
+    annual[:, ~eligible] = np.nan
+    return annual, eligible
+
+
+def metrics(a: np.ndarray, b: np.ndarray, inside: np.ndarray) -&gt; dict:
+    both = inside &amp; np.isfinite(a) &amp; np.isfinite(b)
+    d = a[both] - b[both]
+    base = {&quot;common_pixels&quot;: int(both.sum()),
+            &quot;valid_only_a&quot;: int((inside &amp; np.isfinite(a) &amp; ~np.isfinite(b)).sum()),
+            &quot;valid_only_b&quot;: int((inside &amp; ~np.isfinite(a) &amp; np.isfinite(b)).sum())}
+    if d.size == 0:
+        return base
+    ad = np.abs(d)
+    return {**base, &quot;bias_a_minus_b&quot;: float(d.mean()), &quot;mae&quot;: float(ad.mean()),
+            &quot;p95_abs&quot;: float(np.quantile(ad, 0.95)), &quot;max_abs&quot;: float(ad.max()),
+            &quot;fraction_pixels_changed&quot;: float((ad &gt; 1e-6).mean())}
+
+
+def write_tif(path: Path, bands: list[np.ndarray], names: list[str], crs: str,
+              transform: Affine, scenes: list[str], extra: dict) -&gt; None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256(&quot;\n&quot;.join(sorted(scenes)).encode()).hexdigest()
+    profile = {&quot;driver&quot;: &quot;GTiff&quot;, &quot;height&quot;: bands[0].shape[0], &quot;width&quot;: bands[0].shape[1],
+               &quot;count&quot;: len(bands), &quot;dtype&quot;: &quot;float32&quot;, &quot;crs&quot;: crs, &quot;transform&quot;: transform,
+               &quot;nodata&quot;: NODATA, &quot;compress&quot;: &quot;deflate&quot;}
+    with rasterio.open(path, &quot;w&quot;, **profile) as dst:
+        for i, (b, n) in enumerate(zip(bands, names), start=1):
+            dst.write(np.where(np.isfinite(b), b, NODATA).astype(&quot;float32&quot;), i)
+            dst.set_band_description(i, n)
+        # Provenance INSIDE the file: digest and number of scenes.
+        dst.update_tags(scenes_sha256=digest, n_scenes=str(len(scenes)), **{k: str(v) for k, v in extra.items()})
+    path.with_suffix(&quot;.json&quot;).write_text(json.dumps(
+        {&quot;scenes&quot;: sorted(scenes), &quot;scenes_sha256&quot;: digest, **extra}, indent=2, ensure_ascii=False),
+        encoding=&quot;utf-8&quot;)
+
+
+# ----------------------------------------------------------------------- main
+
+def main() -&gt; None:
+    ap = argparse.ArgumentParser(description=&quot;Effect of the scene universe (GEE, MPC, common) on composites.&quot;)
+    ap.add_argument(&quot;--reconciliation&quot;, type=Path, required=True)
+    ap.add_argument(&quot;--aoi&quot;, type=Path, required=True)
+    ap.add_argument(&quot;--gee-project&quot;, required=True)
+    ap.add_argument(&quot;--out&quot;, type=Path, default=Path(&quot;impact&quot;))
+    ap.add_argument(&quot;--crs&quot;, default=&quot;auto&quot;, help=&quot;e.g. EPSG:9377; default: UTM zone of the AOI.&quot;)
+    ap.add_argument(&quot;--resolution&quot;, type=float, default=10.0)
+    ap.add_argument(&quot;--common-source&quot;, choices=(&quot;mpc&quot;, &quot;gee&quot;), default=&quot;mpc&quot;)
+    ap.add_argument(&quot;--valid-scl&quot;, default=&quot;2,4,5,6,7&quot;)
+    ap.add_argument(&quot;--no-3x3&quot;, action=&quot;store_true&quot;)
+    ap.add_argument(&quot;--months&quot;, help=&quot;Comma-separated YYYY-MM list; default: all.&quot;)
+    ap.add_argument(&quot;--only-months-with-difference&quot;, action=&quot;store_true&quot;,
+                    help=&quot;Process only months with scenes in a single catalogue.&quot;)
+    ap.add_argument(&quot;--min-coverage&quot;, type=float, default=0.0)
+    ap.add_argument(&quot;--max-cloud&quot;, type=float,
+                    help=&quot;Exclude acquisitions with higher scene cloud cover (%%). The GEE value is used &quot;
+                         &quot;and, if missing, the MPC value. Use it to match the filter of an existing manifest.&quot;)
+    ap.add_argument(&quot;--min-months&quot;, type=int, default=8)
+    ap.add_argument(&quot;--min-quarters&quot;, type=int, default=4)
+    a = ap.parse_args()
+
+    valid_classes = {int(v) for v in a.valid_scl.split(&quot;,&quot;)}
+    cache = a.out / &quot;cache&quot;
+    cache.mkdir(parents=True, exist_ok=True)
+    ee.Initialize(project=a.gee_project)
+    client = Client.open(MPC_STAC)
+
+    t = pd.read_csv(a.reconciliation, parse_dates=[&quot;sensing_utc&quot;])
+    t = t[t[&quot;aoi_coverage&quot;].fillna(0) &gt;= a.min_coverage]
+    if a.max_cloud is not None:
+        cloud = t[&quot;cloud_cover_gee&quot;].fillna(t[&quot;cloud_cover_mpc&quot;])
+        t = t[cloud.fillna(0) &lt;= a.max_cloud]
+    if a.months:
+        t = t[t[&quot;month&quot;].isin(a.months.split(&quot;,&quot;))]
+    if a.only_months_with_difference:
+        t = t[t[&quot;month&quot;].isin(t.loc[t[&quot;state&quot;] != &quot;BOTH&quot;, &quot;month&quot;].unique())]
+    if t.empty:
+        sys.exit(&quot;No acquisitions remain after the filters.&quot;)
+
+    crs, transform, width, height, inside = build_grid(a.aoi, a.crs, a.resolution)
+    print(f&quot;Grid {crs} {a.resolution} m | {width}x{height} | pixels in the AOI: {int(inside.sum())}&quot;)
+
+    universes = {&quot;COMMON&quot;: {&quot;BOTH&quot;}, &quot;GEE&quot;: {&quot;BOTH&quot;, &quot;GEE_ONLY&quot;}, &quot;MPC&quot;: {&quot;BOTH&quot;, &quot;MPC_ONLY&quot;}}
+    used, metric_rows, monthly = [], [], {}
+    for month, grp in t.groupby(&quot;month&quot;):
+        stacks = {u: {i: [] for i in INDICES} for u in universes}
+        scenes = {u: [] for u in universes}
+        for f in grp.itertuples(index=False):
+            source = {&quot;BOTH&quot;: a.common_source, &quot;GEE_ONLY&quot;: &quot;gee&quot;, &quot;MPC_ONLY&quot;: &quot;mpc&quot;}[f.state]
+            ident = str(f.ids_gee if source == &quot;gee&quot; else f.ids_mpc).split(&quot;|&quot;)[0]
+            if source == &quot;gee&quot;:
+                refl, val, scl = read_gee(ident, crs, transform, width, height, cache)
+            else:
+                refl, val, scl = read_mpc(ident, crs, transform, width, height, client, cache)
+            idx = scene_indices(refl, val, scl, valid_classes, not a.no_3x3)
+            member = [u for u, states in universes.items() if f.state in states]
+            for u in member:
+                scenes[u].append(ident)
+                for i in INDICES:
+                    stacks[u][i].append(idx[i])
+            used.append({&quot;month&quot;: month, &quot;key&quot;: f.key, &quot;state&quot;: f.state, &quot;identity&quot;: f.identity,
+                         &quot;catalogue_read&quot;: source, &quot;id&quot;: ident, &quot;universes&quot;: &quot;|&quot;.join(member),
+                         &quot;valid_pixels_aoi&quot;: int((inside &amp; np.isfinite(idx[&quot;NDVI&quot;])).sum())})
+        for u in universes:
+            if not scenes[u]:
+                continue
+            layers, count = [], None
+            for i in INDICES:
+                m, n = median(stacks[u][i])
+                layers.append(m)
+                count = n
+            monthly[(month, u)] = np.stack(layers)
+            write_tif(a.out / &quot;monthly&quot; / f&quot;{month}_{u}.tif&quot;, layers + [count.astype(float)],
+                      list(INDICES) + [&quot;OBS_COUNT&quot;], crs, transform, scenes[u],
+                      {&quot;month&quot;: month, &quot;universe&quot;: u, &quot;common_source&quot;: a.common_source})
+        for x, y in ((&quot;GEE&quot;, &quot;COMMON&quot;), (&quot;MPC&quot;, &quot;COMMON&quot;), (&quot;GEE&quot;, &quot;MPC&quot;)):
+            if (month, x) in monthly and (month, y) in monthly:
+                for k, i in enumerate(INDICES):
+                    metric_rows.append({&quot;month&quot;: month, &quot;index&quot;: i, &quot;a&quot;: x, &quot;b&quot;: y,
+                                        &quot;scenes_a&quot;: len(scenes[x]), &quot;scenes_b&quot;: len(scenes[y]),
+                                        **metrics(monthly[(month, x)][k], monthly[(month, y)][k], inside)})
+        print(f&quot;{month} | COMMON={len(scenes[&#x27;COMMON&#x27;])} GEE={len(scenes[&#x27;GEE&#x27;])} MPC={len(scenes[&#x27;MPC&#x27;])}&quot;)
+
+    annual_rows = []
+    for year in sorted({m[:4] for m, _ in monthly}):
+        composites = {}
+        for u in universes:
+            months = sorted(m for m, uu in monthly if uu == u and m.startswith(year))
+            if len(months) &lt; a.min_months:
+                continue
+            composites[u] = medoid(months, [monthly[(m, u)] for m in months], a.min_months, a.min_quarters)
+        for x, y in ((&quot;GEE&quot;, &quot;COMMON&quot;), (&quot;MPC&quot;, &quot;COMMON&quot;), (&quot;GEE&quot;, &quot;MPC&quot;)):
+            if x in composites and y in composites:
+                for k, i in enumerate(INDICES):
+                    annual_rows.append({&quot;year&quot;: year, &quot;index&quot;: i, &quot;a&quot;: x, &quot;b&quot;: y,
+                                        **metrics(composites[x][0][k], composites[y][0][k], inside)})
+
+    pd.DataFrame(used).to_csv(a.out / &quot;scenes_used.csv&quot;, index=False)
+    met = pd.DataFrame(metric_rows)
+    met.to_csv(a.out / &quot;monthly_metrics.csv&quot;, index=False)
+    pd.DataFrame(annual_rows).to_csv(a.out / &quot;annual_metrics.csv&quot;, index=False)
+    summary = {
+        &quot;created_utc&quot;: datetime.now(timezone.utc).isoformat(),
+        &quot;grid&quot;: {&quot;crs&quot;: crs, &quot;resolution_m&quot;: a.resolution, &quot;aoi_pixels&quot;: int(inside.sum())},
+        &quot;filters&quot;: {&quot;min_aoi_coverage&quot;: a.min_coverage, &quot;max_cloud_cover&quot;: a.max_cloud, &quot;months&quot;: a.months},
+        &quot;contract&quot;: {&quot;valid_scl_classes&quot;: sorted(valid_classes), &quot;smoothing_3x3&quot;: not a.no_3x3,
+                     &quot;common_source&quot;: a.common_source, &quot;radiometry&quot;: &quot;max(DN + BOA_ADD_OFFSET, 0) / 10000&quot;,
+                     &quot;monthly_reducer&quot;: &quot;median per index&quot;, &quot;annual_composite&quot;: &quot;multivariate medoid&quot;,
+                     &quot;min_months&quot;: a.min_months, &quot;min_quarters&quot;: a.min_quarters},
+        &quot;months_processed&quot;: sorted({m for m, _ in monthly}),
+        &quot;years_with_composite&quot;: sorted({r[&quot;year&quot;] for r in annual_rows}),
+    }
+    (a.out / &quot;summary.json&quot;).write_text(json.dumps(summary, indent=2, ensure_ascii=False) + &quot;\n&quot;,
+                                        encoding=&quot;utf-8&quot;)
+    if not met.empty:
+        print(&quot;-&quot; * 90)
+        view = met[(met[&quot;a&quot;] == &quot;GEE&quot;) &amp; (met[&quot;b&quot;] == &quot;COMMON&quot;) &amp; (met[&quot;index&quot;] == &quot;NDVI&quot;)]
+        for f in view.itertuples(index=False):
+            print(f&quot;{f.month} NDVI | GEE − COMMON: bias={getattr(f, &#x27;bias_a_minus_b&#x27;, float(&#x27;nan&#x27;)):+.5f} &quot;
+                  f&quot;MAE={getattr(f, &#x27;mae&#x27;, float(&#x27;nan&#x27;)):.5f} ({f.scenes_a} vs {f.scenes_b} scenes)&quot;)
+    print(f&quot;Outputs in: {a.out.resolve()}&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</pre>
+</details>
+
+<h2>Lo que queda abierto</h2>
+<p>El piloto cubre un predio, dos teselas y 11 meses de conciliación. Dos preguntas quedan abiertas, y la caja de herramientas está pensada para que cualquier lector las explore en su propia área y periodo:</p>
+<ul class="plain">
+  <li><strong>Frecuencia de generaciones distintas.</strong> ¿Qué proporción de adquisiciones comunes tiene generaciones L2A distintas en otras regiones y años? ¿Se concentra en campañas de reprocesamiento, en ciertas baselines o en ciertas teselas? ¿Con qué frecuencia cambia la máscara de nubes?</li>
+  <li><strong>Asimetría de catálogos.</strong> ¿Qué proporción de adquisiciones existe en un solo catálogo? ¿Se limita a la entrada de Sentinel‑2C o aparece en otros periodos, como septiembre de 2024 en este caso? ¿Cuánto mueve las medianas mensuales y, con un diseño pareado del mismo año, los compuestos anuales?</li>
+</ul>
+<p>Los catálogos se actualizan: una escena ausente hoy puede aparecer mañana. Por eso conviene conservar la fecha de consulta junto con cada conciliación. Las cifras de este documento corresponden a consultas del 24 de septiembre de 2026.</p>
+
+<h2>Qué dice la literatura</h2>
+<p>Las revisiones de plataformas para grandes volúmenes de observación de la Tierra comparan arquitectura, acceso y modelos de cómputo (Gomes et al., 2020), y la descripción de referencia de GEE se centra en su capacidad de análisis a escala planetaria (Gorelick et al., 2017). En la búsqueda realizada para este trabajo no se encontró una comparación publicada que evalúe, píxel a píxel, si GEE y MPC producen los mismos índices a partir de Sentinel‑2 L2A. Ese es el vacío que aborda este caso.</p>
+<p>Varios hallazgos coinciden con lo documentado. El tratamiento distinto del offset radiométrico está descrito en el catálogo de GEE (Google, s. f.) y en una discusión abierta desde 2022 en el repositorio de Planetary Computer, donde se señala que MPC no aplica la armonización y que el usuario debe leer el offset del XML (Bunting, 2022). La existencia de varias generaciones del mismo dato responde a los reprocesamientos de ESA; Collection‑1 reprocesa el archivo histórico a una baseline común precisamente porque el archivo tenía versiones heterogéneas (Enache et al., 2023). La asimetría de Sentinel‑2C coincide con su calendario: ESA publicó un conjunto preliminar del satélite entre el 13 y el 19 de diciembre de 2024, todavía en comisionamiento, y el 21 de enero de 2025 Sentinel‑2C reemplazó a Sentinel‑2A (Copernicus Data Space Ecosystem, 2024, 2025). Los productos de Sentinel‑2C de finales de 2024 se publicaron con una baseline provisional y se están reprocesando (Copernicus Data Space Ecosystem, 2026). Tras su ajuste vicario, Sentinel‑2C coincide con Sentinel‑2A dentro de cerca del 1 % en casi todas las bandas (Clerc et al., 2026). La colección reprocesada Collection‑1 cubre adquisiciones hasta diciembre de 2023 (Enache et al., 2023), por lo que no explica las generaciones distintas de 2024.</p>
+<p>La dependencia de la máscara SCL para definir la cobertura útil está en línea con los análisis de cobertura espacial y temporal basados en esa capa (Sanchez et al., 2024). Las lecciones sobre procedencia, contenedores y conjuntos de referencia se alinean con las recomendaciones de reproducibilidad para la percepción remota de Kedron y Frazier (2022).</p>
+
+<h2>Declaración de uso de inteligencia artificial</h2>
+<p>En la elaboración de este trabajo se usaron asistentes de inteligencia artificial generativa: Claude (Anthropic, 2026), en su versión Opus 5.5, y ChatGPT (OpenAI, 2026), mediante una suscripción ChatGPT Pro. Se emplearon como apoyo en el diseño de las pruebas, la escritura y depuración de código, la revisión de literatura, la organización de resultados y la redacción y edición del texto.</p>
+<p>El autor definió la pregunta y el alcance del estudio, ejecutó todo el código en su propio entorno, verificó los resultados contra los datos y revisó el contenido final. Las referencias bibliográficas se contrastaron con sus fuentes originales. La responsabilidad por el contenido, los análisis y las conclusiones es del autor.</p>
+
+<h2>Cómo citar</h2>
+<p>Pantevez Villamil, H. A. (2026). <i>Same computation, different scenes: a single-site comparison of Sentinel‑2 L2A composites from Google Earth Engine and Microsoft Planetary Computer</i> (Versión v1) [Preprint, datos y software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.23241823">https://doi.org/10.5281/zenodo.23241823</a></p>
+
+<h2>Referencias</h2>
+<div class="refs">
+<p>Anthropic. (2026). <i>Claude</i> (versión Opus 5.5) [Modelo de lenguaje de gran tamaño]. <a href="https://claude.ai">https://claude.ai</a></p>
+<p>Bunting, P. (2022, 23 de noviembre). <i>Sentinel-2 BOA_ADD_OFFSET harmonisation</i> (Issue n.º 134) [Discusión en línea]. GitHub, microsoft/PlanetaryComputer. <a href="https://github.com/microsoft/PlanetaryComputer/issues/134">https://github.com/microsoft/PlanetaryComputer/issues/134</a></p>
+<p>Clerc, S., Rodat, D., Lafrance, B., Alhammoud, B., Enache, S., Deru, A., Rivoire, L., Adriaensen, S., Hillairet, E., Morrone, R., Iannone, R. y Boccia, V. (2026). Copernicus Sentinel-2C radiometric calibration and validation status. <i>Remote Sensing, 18</i>(9), 1387. <a href="https://doi.org/10.3390/rs18091387">https://doi.org/10.3390/rs18091387</a></p>
+<p>Copernicus Data Space Ecosystem. (2026, 21 de abril). <i>Sentinel-2C reprocessing of tandem data with Sentinel-2A</i>. <a href="https://dataspace.copernicus.eu/node/3214">https://dataspace.copernicus.eu/node/3214</a></p>
+<p>Enache, S., Louis, J., Pflug, B., de los Reyes, R., Lafrance, B., Clerc, S., Barrot, G., Alhammoud, B., Poustomis, F., Iannone, R. Q., Bruniquel, J., Boccia, V. y Gascon, F. (2023). Copernicus Sentinel-2 Collection-1: A consistent dataset of multi-spectral imagery with enhanced quality. En <i>IGARSS 2023 – 2023 IEEE International Geoscience and Remote Sensing Symposium</i> (pp. 4302–4305). IEEE. <a href="https://doi.org/10.1109/IGARSS52108.2023.10282362">https://doi.org/10.1109/IGARSS52108.2023.10282362</a></p>
+<p>Copernicus Data Space Ecosystem. (2024, 13 de diciembre). <i>Publication of preliminary Sentinel-2C dataset</i>. <a href="https://dataspace.copernicus.eu/news/2024-12-13-publication-preliminary-sentinel-2c-dataset">https://dataspace.copernicus.eu/news/2024-12-13-publication-preliminary-sentinel-2c-dataset</a></p>
+<p>Copernicus Data Space Ecosystem. (2025, 8 de enero). <i>Copernicus Sentinel-2 mission update: Transfer of duty from Sentinel-2A to Sentinel-2C on 21 January 2025</i>. <a href="https://dataspace.copernicus.eu/news/2025-1-8-copernicus-sentinel-2-mission-update-transfer-duty-sentinel-2a-sentinel-2c-21-january">https://dataspace.copernicus.eu/news/2025-1-8-copernicus-sentinel-2-mission-update-transfer-duty-sentinel-2a-sentinel-2c-21-january</a></p>
+<p>Gomes, V. C. F., Queiroz, G. R. y Ferreira, K. R. (2020). An overview of platforms for big Earth observation data management and analysis. <i>Remote Sensing, 12</i>(8), 1253. <a href="https://doi.org/10.3390/rs12081253">https://doi.org/10.3390/rs12081253</a></p>
+<p>Google. (s. f.). <i>Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-2A (SR)</i> [COPERNICUS/S2_SR_HARMONIZED]. Earth Engine Data Catalog. Consultado el 24 de septiembre de 2026. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED</a></p>
+<p>Gorelick, N., Hancher, M., Dixon, M., Ilyushchenko, S., Thau, D. y Moore, R. (2017). Google Earth Engine: Planetary-scale geospatial analysis for everyone. <i>Remote Sensing of Environment, 202</i>, 18–27. <a href="https://doi.org/10.1016/j.rse.2017.06.031">https://doi.org/10.1016/j.rse.2017.06.031</a></p>
+<p>Kedron, P. y Frazier, A. E. (2022). How to improve the reproducibility, replicability, and extensibility of remote sensing research. <i>Remote Sensing, 14</i>(21), 5471. <a href="https://doi.org/10.3390/rs14215471">https://doi.org/10.3390/rs14215471</a></p>
+<p>Microsoft Open Source, McFarland, M., Emanuele, R., Morris, D. y Augspurger, T. (2022). <i>microsoft/PlanetaryComputer: October 2022</i> (Versión 2022.10.28) [Software]. Zenodo. <a href="https://doi.org/10.5281/zenodo.7261897">https://doi.org/10.5281/zenodo.7261897</a></p>
+<p>OpenAI. (2026). <i>ChatGPT</i> [Modelo de lenguaje de gran tamaño]. <a href="https://chatgpt.com">https://chatgpt.com</a></p>
+<p>Sanchez, C., Mena, F., Charfuelan, M., Nuske, M. y Dengel, A. (2024). Assessment of Sentinel-2 spatial and temporal coverage based on the scene classification layer. En <i>IGARSS 2024 – 2024 IEEE International Geoscience and Remote Sensing Symposium</i>. <a href="https://doi.org/10.1109/IGARSS53475.2024.10642213">https://doi.org/10.1109/IGARSS53475.2024.10642213</a></p>
+</div>
+
+<h2>Glosario</h2>
+<dl>
+  <dt>Sentinel‑2 L2A</dt><dd>Producto de reflectancia de superficie corregido por atmósfera (Sen2Cor). Incluye las bandas espectrales y la capa SCL.</dd>
+  <dt>Sentinel‑2A, 2B y 2C</dt><dd>Satélites de la constelación Sentinel‑2 del programa Copernicus (ESA), con el mismo sensor MSI. 2A opera desde 2015 y 2B desde 2017; 2C, lanzado en septiembre de 2024, reemplazó a 2A el 21 de enero de 2025. La letra identifica el satélite, no el catálogo.</dd>
+  <dt>E1 y E2</dt><dd>Etiquetas de este estudio. E1: GEE y MPC tienen el mismo producto de una adquisición. E2: tienen generaciones L2A distintas de la misma adquisición.</dd>
+  <dt>Datatake, product_id y generación</dt><dd>El datatake es la adquisición del sensor. El <code>product_id</code> identifica una versión procesada. Una misma adquisición puede tener varias generaciones si ESA la reprocesa, y cada catálogo puede conservar una distinta.</dd>
+  <dt>Baseline de procesamiento y BOA_ADD_OFFSET</dt><dd>Versión del procesador de ESA. Desde la baseline 04.00 la reflectancia se codifica con un offset de −1000 que hay que aplicar.</dd>
+  <dt>SCL</dt><dd>Clasificación de escena a 20 m: nube, sombra, vegetación, suelo, agua y otras clases. Define qué píxeles se usan.</dd>
+  <dt>STAC, COG y firma SAS</dt><dd>STAC es el estándar de catálogo de MPC; COG, un GeoTIFF optimizado para lectura parcial; la firma SAS autoriza temporalmente la descarga.</dd>
+  <dt>Teselas MGRS</dt><dd>Cuadros de 110 × 110 km en que se distribuye Sentinel‑2. Las vecinas se solapan, así que una adquisición puede aparecer en dos teselas.</dd>
+  <dt>Universo de escenas</dt><dd>El conjunto exacto de escenas que entra a un compuesto. Dos productos con el mismo código y distinto universo no son comparables.</dd>
+  <dt>OBS_COUNT</dt><dd>Número de observaciones válidas que entraron a la mediana de cada píxel. En este caso fue la evidencia que reveló las escenas extra.</dd>
+  <dt>Jaccard de cobertura</dt><dd>Intersección sobre unión de los píxeles válidos de dos máscaras. Vale 1 si son idénticas.</dd>
+  <dt>Medoide</dt><dd>La observación real con menor suma de distancias a las demás. En el compuesto anual garantiza que NDVI, EVI y NDWI provengan del mismo mes.</dd>
+</dl>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Heiber Alexander Pantevez Villamil (hapantevezv@unal.edu.co; ORCID 0000-0003-1797-0057) · Doctorado en Agroecología, Facultad de Ciencias Agrarias, Universidad Nacional de Colombia, Sede Bogotá · Curso de Percepción Remota Avanzada. Caso piloto sobre un predio ganadero del Cesar, Colombia; consultas de catálogo del 24 de septiembre de 2026. El documento no incluye rásteres, credenciales ni la geometría del predio.</p>
+  </div>
+</footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Figura ampliada">
+  <div class="lb-bar">
+    <span class="lb-title" id="lb-title"></span>
+    <button type="button" id="lb-out" aria-label="Reducir">−</button>
+    <button type="button" id="lb-fit">Ajustar</button>
+    <button type="button" id="lb-in" aria-label="Ampliar">+</button>
+    <button type="button" id="lb-close" aria-label="Cerrar">Cerrar ✕</button>
+  </div>
+  <div class="lb-scroll" id="lb-scroll"><div class="lb-canvas" id="lb-canvas"></div></div>
+</div>
+
+<script>
+(function () {
+  var lb = document.getElementById('lb'), canvas = document.getElementById('lb-canvas'),
+      scroll = document.getElementById('lb-scroll'), title = document.getElementById('lb-title');
+  var svg = null, ratio = 1, scale = 1, fitW = 0, last = null;
+  function fit() {
+    var w = scroll.clientWidth - 48, h = scroll.clientHeight - 32;
+    fitW = Math.max(200, Math.min(w, h * ratio)); scale = 1; apply();
+  }
+  function apply() { if (svg) svg.style.width = Math.round(fitW * scale) + 'px'; }
+  function open(fig) {
+    var src = fig.querySelector('svg'); if (!src) return;
+    last = document.activeElement;
+    svg = src.cloneNode(true);
+    svg.removeAttribute('height'); svg.style.minWidth = '0';
+    var vb = (src.getAttribute('viewBox') || '0 0 4 3').split(/[ ,]+/).map(Number);
+    ratio = vb[2] / vb[3];
+    canvas.className = 'lb-canvas' + (fig.classList.contains('wf') ? ' white' : '');
+    canvas.innerHTML = ''; canvas.appendChild(svg);
+    var cap = fig.querySelector('figcaption');
+    title.textContent = cap ? cap.textContent.split('. ')[0] : '';
+    lb.classList.add('open'); document.body.style.overflow = 'hidden';
+    fit(); document.getElementById('lb-close').focus();
+  }
+  function close() {
+    lb.classList.remove('open'); canvas.innerHTML = ''; svg = null;
+    document.body.style.overflow = ''; if (last) last.focus();
+  }
+  document.querySelectorAll('figure').forEach(function (fig) {
+    var box = fig.querySelector('.chart, .wfbox'); if (!box) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'zoombtn'; b.textContent = '⤢ Ampliar';
+    b.setAttribute('aria-label', 'Ampliar figura');
+    b.addEventListener('click', function () { open(fig); });
+    fig.appendChild(b);
+    box.querySelector('svg').addEventListener('click', function () { open(fig); });
+  });
+  document.getElementById('lb-in').onclick = function () { scale = Math.min(scale * 1.4, 8); apply(); };
+  document.getElementById('lb-out').onclick = function () { scale = Math.max(scale / 1.4, 0.4); apply(); };
+  document.getElementById('lb-fit').onclick = fit;
+  document.getElementById('lb-close').onclick = close;
+  lb.addEventListener('click', function (e) { if (e.target === lb || e.target === scroll) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === '+' || e.key === '=') document.getElementById('lb-in').click();
+    else if (e.key === '-') document.getElementById('lb-out').click();
+  });
+  window.addEventListener('resize', function () { if (lb.classList.contains('open')) fit(); });
+})();
+
+document.querySelectorAll('button.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var pre = document.getElementById(btn.dataset.target);
+    var done = function () { btn.textContent = 'Copiado'; setTimeout(function () { btn.textContent = 'Copiar código'; }, 1800); };
+    var select = function () { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Seleccionado: use Ctrl+C'; };
+    try { navigator.clipboard.writeText(pre.textContent).then(done, select); } catch (e) { select(); }
+  });
+});
+</script>

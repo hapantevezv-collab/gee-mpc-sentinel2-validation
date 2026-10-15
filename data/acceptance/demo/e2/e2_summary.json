@@ -1,0 +1,23 @@
+{
+  "created_utc": "2026-10-08T14:21:55.689310+00:00",
+  "reconciliation": "05_demonstration/reconciliation/scene_reconciliation.csv",
+  "acquisitions_in_both": 136,
+  "e2": 22,
+  "fraction_e2": 0.16176470588235295,
+  "e2_by_type": {
+    "SAME_BASELINE_OTHER_GENERATION": 22
+  },
+  "median_generation_lag_h": 1.5220381279166668,
+  "scl": {
+    "pairs_measured": 22,
+    "median_scl_class_agreement": 1.0,
+    "median_validity_jaccard": 1.0,
+    "valid_scl_classes": [
+      2,
+      4,
+      5,
+      6,
+      7
+    ]
+  }
+}

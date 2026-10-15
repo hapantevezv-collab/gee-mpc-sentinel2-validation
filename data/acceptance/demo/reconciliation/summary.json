@@ -1,0 +1,24 @@
+{
+  "created_utc": "2026-10-08T14:20:46.243984+00:00",
+  "aoi": "aoi_demonstration_T18PXS_T18PYS.geojson",
+  "start": "2024-06-01",
+  "end": "2025-04-30",
+  "gee_collection": "COPERNICUS/S2_SR_HARMONIZED",
+  "mpc_collection": "sentinel-2-l2a",
+  "matching_key": "datatake without baseline suffix + MGRS tile",
+  "min_aoi_coverage": 0.0,
+  "acquisitions": 146,
+  "by_state": {
+    "BOTH": 136,
+    "GEE_ONLY": 10
+  },
+  "fraction_single_catalogue": 0.0684931506849315,
+  "E1": 114,
+  "E2": 22,
+  "fraction_E2_of_BOTH": 0.16176470588235295,
+  "versions": {
+    "earthengine-api": "1.7.10",
+    "pandas": "2.3.3",
+    "shapely": "2.1.2"
+  }
+}

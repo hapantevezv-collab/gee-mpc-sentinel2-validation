@@ -1,0 +1,33 @@
+{
+  "title": "gee-mpc-sentinel2-validation: tools to check the combination of Sentinel-2 L2A from Google Earth Engine and Microsoft Planetary Computer",
+  "upload_type": "software",
+  "description": "<p>Python package to check, before combining Sentinel-2 L2A from Google Earth Engine (GEE) and Microsoft Planetary Computer (MPC), whether both catalogues hold the same scenes and the same L2A generation, and how much monthly medians and annual composites of NDVI, EVI and NDWI change with the scene universe.</p><p>Version 1.1.0 is an engineering release: installable package, command-line entry points, tests with acceptance values on a public demonstration area, and continuous integration. Methods and published results are unchanged from version 1.0.0 (preprint, data and code: https://doi.org/10.5281/zenodo.23241823).</p><p>Generative AI assistants (Claude, Anthropic; ChatGPT, OpenAI) supported code writing, testing and documentation; design decisions and verification were made by the author.</p>",
+  "creators": [
+    {
+      "name": "Pantevez Villamil, Heiber Alexander",
+      "orcid": "0000-0003-1797-0057",
+      "affiliation": "Universidad Nacional de Colombia"
+    }
+  ],
+  "license": "MIT",
+  "language": "eng",
+  "version": "1.1.0",
+  "keywords": [
+    "Sentinel-2",
+    "Google Earth Engine",
+    "Microsoft Planetary Computer",
+    "STAC",
+    "interoperability",
+    "reproducibility",
+    "scene inventory",
+    "provenance"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.5281/zenodo.23241823",
+      "relation": "isNewVersionOf",
+      "scheme": "doi"
+    }
+  ],
+  "notes": "The pilot farm geometry is not included. Acceptance values refer to the public demonstration AOI (data/demo_aoi.geojson)."
+}

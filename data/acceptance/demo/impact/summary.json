@@ -1,0 +1,36 @@
+{
+  "created_utc": "2026-10-08T14:26:53.214697+00:00",
+  "grid": {
+    "crs": "EPSG:9377",
+    "resolution_m": 10.0,
+    "aoi_pixels": 9970
+  },
+  "filters": {
+    "min_aoi_coverage": 0.0,
+    "max_cloud_cover": 20.0,
+    "months": null
+  },
+  "contract": {
+    "valid_scl_classes": [
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "smoothing_3x3": true,
+    "common_source": "mpc",
+    "radiometry": "max(DN + BOA_ADD_OFFSET, 0) / 10000",
+    "monthly_reducer": "median per index",
+    "annual_composite": "multivariate medoid",
+    "min_months": 8,
+    "min_quarters": 4
+  },
+  "months_processed": [
+    "2024-09",
+    "2024-12",
+    "2025-01",
+    "2025-02"
+  ],
+  "years_with_composite": []
+}

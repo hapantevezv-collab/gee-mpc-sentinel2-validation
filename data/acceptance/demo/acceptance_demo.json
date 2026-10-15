@@ -1,0 +1,61 @@
+{
+  "description": "Acceptance values for the public demonstration AOI (data/demo_aoi.geojson), period 2024-06-01 to 2025-04-30, catalogues queried 2026-10-08. Reference outputs are in this folder; SHA256SUMS.txt lists their hashes.",
+  "commands": [
+    "gee-mpc-reconcile --aoi data/demo_aoi.geojson --start 2024-06-01 --end 2025-04-30 --gee-project MY_PROJECT --out demo_reconciliation",
+    "gee-mpc-e2 --reconciliation demo_reconciliation/scene_reconciliation.csv --measure-scl --aoi data/demo_aoi.geojson --gee-project MY_PROJECT --out demo_e2",
+    "gee-mpc-impact --reconciliation demo_reconciliation/scene_reconciliation.csv --aoi data/demo_aoi.geojson --gee-project MY_PROJECT --crs EPSG:9377 --max-cloud 20 --only-months-with-difference --out demo_impact"
+  ],
+  "reconciliation": {
+    "acquisitions": 146,
+    "BOTH": 136,
+    "GEE_ONLY": 10,
+    "MPC_ONLY": 0,
+    "E1": 114,
+    "E2": 22
+  },
+  "e2": {
+    "pairs": 22,
+    "pairs_measured": 22,
+    "pairs_with_scl_difference": [
+      {
+        "key": "GS2A_20240706T152701_047212|18PXS",
+        "validity_jaccard": 0.993
+      }
+    ]
+  },
+  "grid": {
+    "crs": "EPSG:9377",
+    "resolution_m": 10,
+    "aoi_pixels": 9970
+  },
+  "monthly_ndvi_gee_minus_common": [
+    {
+      "month": "2024-09",
+      "records_common": 1,
+      "records_gee": 3,
+      "bias": 0.0005,
+      "mae": 0.013
+    },
+    {
+      "month": "2024-12",
+      "records_common": 4,
+      "records_gee": 5,
+      "bias": 0.0042,
+      "mae": 0.0074
+    },
+    {
+      "month": "2025-01",
+      "records_common": 6,
+      "records_gee": 8,
+      "bias": -0.0281,
+      "mae": 0.0284
+    },
+    {
+      "month": "2025-02",
+      "records_common": 5,
+      "records_gee": 6,
+      "bias": -0.0147,
+      "mae": 0.015
+    }
+  ]
+}

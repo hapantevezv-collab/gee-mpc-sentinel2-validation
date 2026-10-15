@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata in this file."
+type: software
+title: "gee-mpc-sentinel2-validation: tools to check the combination of Sentinel-2 L2A from Google Earth Engine and Microsoft Planetary Computer"
+version: 1.1.0
+license: MIT
+repository-code: "https://github.com/hapantevezv-collab/gee-mpc-sentinel2-validation"
+authors:
+  - family-names: Pantevez Villamil
+    given-names: Heiber Alexander
+    email: hapantevezv@unal.edu.co
+    affiliation: "Universidad Nacional de Colombia, Facultad de Ciencias Agrarias, Sede Bogotá"
+    orcid: "https://orcid.org/0000-0003-1797-0057"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23241823
+    description: "Version 1.0.0 (preprint, data and code)"
+keywords:
+  - Sentinel-2
+  - Google Earth Engine
+  - Microsoft Planetary Computer
+  - interoperability
+  - reproducibility
+  - STAC
+abstract: >-
+  Python package to check, before combining Sentinel-2 L2A from Google Earth
+  Engine and Microsoft Planetary Computer, whether both catalogues hold the
+  same scenes and the same L2A generation, and how much monthly medians and
+  annual composites of NDVI, EVI and NDWI change with the scene universe.
+preferred-citation:
+  type: article
+  title: "Same computation, different scenes: a single-site comparison of Sentinel-2 L2A composites from Google Earth Engine and Microsoft Planetary Computer"
+  authors:
+    - family-names: Pantevez Villamil
+      given-names: Heiber Alexander
+      orcid: "https://orcid.org/0000-0003-1797-0057"
+  year: 2026
+  doi: 10.5281/zenodo.23241823
+  publisher:
+    name: Zenodo
+  notes: "Preprint, not peer reviewed"
