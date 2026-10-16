@@ -150,8 +150,9 @@ See also `CITATION.cff`.
 
 Heiber Alexander Pantevez Villamil · hapantevezv@unal.edu.co ·
 [ORCID 0000-0003-1797-0057](https://orcid.org/0000-0003-1797-0057)
-Doctorado en Agroecología, Facultad de Ciencias Agrarias,
-Universidad Nacional de Colombia, Sede Bogotá.
+Doctorado en Agroecología, Facultad de Ciencias Agropecuarias,
+Universidad Nacional de Colombia, Sede Palmira.
+Internal mobility: Facultad de Ciencias Agrarias, Universidad Nacional de Colombia, Sede Bogotá.
 
 ## Use of generative artificial intelligence
 
