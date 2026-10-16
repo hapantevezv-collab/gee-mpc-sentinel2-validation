@@ -1,7 +1,8 @@
 # gee-mpc-sentinel2-validation
 
 [![tests](https://github.com/hapantevezv-collab/gee-mpc-sentinel2-validation/actions/workflows/tests.yml/badge.svg)](https://github.com/hapantevezv-collab/gee-mpc-sentinel2-validation/actions/workflows/tests.yml)
-[![DOI v1.0.0](https://zenodo.org/badge/DOI/10.5281/zenodo.23241823.svg)](https://doi.org/10.5281/zenodo.23241823)
+[![DOI software v1.1.0](https://zenodo.org/badge/DOI/10.5281/zenodo.23407223.svg)](https://doi.org/10.5281/zenodo.23407223)
+[![DOI preprint v1](https://zenodo.org/badge/DOI/10.5281/zenodo.23241823.svg)](https://doi.org/10.5281/zenodo.23241823)
 
 Tools to check whether it is safe to combine **Sentinel‑2 L2A** imagery from
 **Google Earth Engine (GEE)** and **Microsoft Planetary Computer (MPC)** in one
@@ -132,6 +133,11 @@ Pantevez Villamil, H. A. (2026). *Same computation, different scenes: a single-s
 comparison of Sentinel‑2 L2A composites from Google Earth Engine and Microsoft
 Planetary Computer* (Version v1) [Preprint, data and software]. Zenodo.
 https://doi.org/10.5281/zenodo.23241823
+
+To cite the software itself:
+
+Pantevez Villamil, H. A. (2026). *gee-mpc-sentinel2-validation* (Version 1.1.0) [Software]. Zenodo.
+https://doi.org/10.5281/zenodo.23407223
 
 See also `CITATION.cff`.
 
