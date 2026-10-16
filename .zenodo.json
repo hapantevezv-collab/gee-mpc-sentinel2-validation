@@ -9,7 +9,7 @@
       "affiliation": "Universidad Nacional de Colombia"
     }
   ],
-  "license": "MIT",
+  "license": "mit",
   "language": "eng",
   "version": "1.1.0",
   "keywords": [
@@ -25,7 +25,7 @@
   "related_identifiers": [
     {
       "identifier": "10.5281/zenodo.23241823",
-      "relation": "isNewVersionOf",
+      "relation": "isSupplementTo",
       "scheme": "doi"
     }
   ],
