@@ -103,7 +103,7 @@ The annual composite is implemented but was not evaluated in the preprint.
 | `tests/` | Unit tests and offline acceptance tests (pytest) |
 | `data/demo_aoi.geojson` | Public 1 km × 1 km AOI in the overlap of tiles T18PXS and T18PYS |
 | `data/acceptance/demo/` | Reference outputs, `acceptance_demo.json` and `SHA256SUMS.txt` |
-| `docs/` | Guide (Spanish), acceptance test, workflow figures |
+| `docs/` | Guide (Spanish), acceptance test, data dictionary (`data_dictionary.md`, `.csv`), workflow figures |
 
 ## Tests
 

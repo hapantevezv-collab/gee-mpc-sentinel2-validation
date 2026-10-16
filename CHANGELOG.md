@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Data dictionary for every output table (`docs/data_dictionary.md` and machine-readable
+  `docs/data_dictionary.csv`), with a test that checks it covers all reference outputs.
+
 ## 1.1.0 — 2026-10-15
 
 Engineering release; no change to the methods or to the published results.
