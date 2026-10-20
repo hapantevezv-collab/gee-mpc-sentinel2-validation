@@ -18,7 +18,10 @@ identifiers:
     description: "Software, version 1.1.0"
   - type: doi
     value: 10.5281/zenodo.23241823
-    description: "Preprint, data and code, version 1.0.0"
+    description: "Preprint version 1, data and code version 1.0.0"
+  - type: doi
+    value: 10.31223/X5SC0B
+    description: "Preprint, EarthArXiv (latest version)"
 keywords:
   - Sentinel-2
   - Google Earth Engine
@@ -39,7 +42,7 @@ preferred-citation:
       given-names: Heiber Alexander
       orcid: "https://orcid.org/0000-0003-1797-0057"
   year: 2026
-  doi: 10.5281/zenodo.23241823
+  doi: 10.31223/X5SC0B
   publisher:
-    name: Zenodo
+    name: EarthArXiv
   notes: "Preprint, not peer reviewed"

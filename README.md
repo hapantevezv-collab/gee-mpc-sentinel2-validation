@@ -2,7 +2,8 @@
 
 [![tests](https://github.com/hapantevezv-collab/gee-mpc-sentinel2-validation/actions/workflows/tests.yml/badge.svg)](https://github.com/hapantevezv-collab/gee-mpc-sentinel2-validation/actions/workflows/tests.yml)
 [![DOI software v1.1.0](https://zenodo.org/badge/DOI/10.5281/zenodo.23407223.svg)](https://doi.org/10.5281/zenodo.23407223)
-[![DOI preprint v1](https://zenodo.org/badge/DOI/10.5281/zenodo.23241823.svg)](https://doi.org/10.5281/zenodo.23241823)
+[![DOI preprint EarthArXiv](https://img.shields.io/badge/EarthArXiv-10.31223%2FX5SC0B-blue)](https://doi.org/10.31223/X5SC0B)
+[![DOI data and code v1](https://zenodo.org/badge/DOI/10.5281/zenodo.23241823.svg)](https://doi.org/10.5281/zenodo.23241823)
 
 Tools to check whether it is safe to combine **Sentinel‑2 L2A** imagery from
 **Google Earth Engine (GEE)** and **Microsoft Planetary Computer (MPC)** in one
@@ -22,7 +23,8 @@ A pilot case over a cattle farm in Cesar (Colombia) showed three things:
   records, all from June and July 2024, the catalogues held different L2A
   generations. Of the 10 pairs with valid pixels, one had a different cloud mask.
 
-Preprint, data and version 1.0.0 of the code: https://doi.org/10.5281/zenodo.23241823.
+Preprint (EarthArXiv, latest version): https://doi.org/10.31223/X5SC0B.
+Data, version 1.0.0 of the code and preprint version 1: https://doi.org/10.5281/zenodo.23241823.
 A Spanish-language guide with results and lessons learned is in
 [`docs/guide_es.html`](docs/guide_es.html).
 
@@ -131,8 +133,9 @@ GEE_PROJECT=MY_PROJECT pytest      # also queries the live catalogues
 
 Pantevez Villamil, H. A. (2026). *Same computation, different scenes: a single-site
 comparison of Sentinel‑2 L2A composites from Google Earth Engine and Microsoft
-Planetary Computer* (Version v1) [Preprint, data and software]. Zenodo.
-https://doi.org/10.5281/zenodo.23241823
+Planetary Computer* [Preprint]. EarthArXiv. https://doi.org/10.31223/X5SC0B
+
+Data and version 1.0.0 of the code: Zenodo. https://doi.org/10.5281/zenodo.23241823
 
 To cite the software itself:
 
